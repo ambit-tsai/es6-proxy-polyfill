@@ -1,37 +1,47 @@
-# es6-proxy-polyfill
+<div align="right">[ <a href="README_zh.md">中文</a> ]</div>
 
-#### 项目介绍
-Proxy polyfill based on ES3 supports IE8, Node.js, etc.
+# ES6 Proxy Polyfill
+This is a polyfill for the `Proxy` constructor based on  **ES3**  supports  **IE8** , Node.js, etc.
 
-#### 软件架构
-软件架构说明
+Refer to <a href="https://tc39.github.io/ecma262/#sec-proxy-target-handler" target="_blank">ECMAScript</a>, and this has no external dependencies. 
 
-
-#### 安装教程
-
-1. xxxx
-2. xxxx
-3. xxxx
-
-#### 使用说明
-
-1. xxxx
-2. xxxx
-3. xxxx
-
-#### 参与贡献
-
-1. Fork 本项目
-2. 新建 Feat_xxx 分支
-3. 提交代码
-4. 新建 Pull Request
+Due to the limitations of ES3, the polyfill supports just a limited number of proxy 'traps':
+* apply
+* construct
 
 
-#### 码云特技
+#### Installation
 
-1. 使用 Readme\_XXX.md 来支持不同的语言，例如 Readme\_en.md, Readme\_zh.md
-2. 码云官方博客 [blog.gitee.com](https://blog.gitee.com)
-3. 你可以 [https://gitee.com/explore](https://gitee.com/explore) 这个地址来了解码云上的优秀开源项目
-4. [GVP](https://gitee.com/gvp) 全称是码云最有价值开源项目，是码云综合评定出的优秀开源项目
-5. 码云官方提供的使用手册 [https://gitee.com/help](https://gitee.com/help)
-6. 码云封面人物是一档用来展示码云会员风采的栏目 [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+1. Use NPM: `npm install es6-proxy-polyfill`
+2. Download directly: <a href="src/es6-proxy-polyfill.js" target="_blank">Development Version</a>, <a href="dist/es6-proxy-polyfill.js" target="_blank">Production Version</a>
+
+
+#### Usage
+
+1. Browser:
+```
+<script src="path/to/es6-proxy-polyfill.js" type="text/javascript"></script>
+<script type="text/javascript">
+    var target = function(){/* code */};
+    var handler = {/* code */};
+    var proxy = new Proxy(target, handler);
+</script>
+```
+2. Node.js:
+```
+require('es6-proxy-polyfill');
+
+var target = function(){/* code */};
+var handler = {/* code */};
+var proxy = new Proxy(target, handler);
+```
+
+
+#### Notice
+
+1. In ES6, the access to `Proxy` object's properties will be passed to target. In order to simulate this feature, polyfill will try to copy properties from target by using `Object.assign` method, so it's better to load an `Object.assign` polyfill first;
+```
+<script src="path/to/babel-polyfill.js" type="text/javascript"></script>
+<script src="path/to/es6-proxy-polyfill.js" type="text/javascript"></script>
+```
+2. The code has been tested on Node.js 0.10.48 and IE8, and it may work in other environments too.
