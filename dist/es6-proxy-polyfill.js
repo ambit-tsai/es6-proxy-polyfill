@@ -1,0 +1,8 @@
+/**
+ * ES6 Proxy Polyfill
+ * @version 1.0.0
+ * @author Ambit Tsai <ambit_tsai@qq.com>
+ * @license Apache-2.0
+ * @see {@link https://github.com/ambit-tsai/es6-proxy-polyfill}
+ */
+!function(t){if(!t.Proxy){var n=function(){},c=Object.assign||n,a=Object.getPrototypeOf||n,i=Object.setPrototypeOf||n;s.prototype.$call=function(t,n){var o=this.target,r=this.handler;return r||p("Cannot perform 'call' on a proxy that has been revoked"),null==r.apply?o.apply(t,n):"function"==typeof r.apply?r.apply(o,t,n):void p("Proxy handler's apply trap must be a function")},s.prototype.$construct=function(t,n){var o,r=this.target,e=this.handler;if(e||p("Cannot perform 'construct' on a proxy that has been revoked"),null==e.construct)return(o=r.apply(t,n))instanceof Object?o:t;if("function"==typeof e.construct){if((o=e.construct(r,n))instanceof Object)return o;p("Proxy handler's construct trap must return an object")}else p("Proxy handler's construct trap must be a function")},t.Proxy=Proxy}function p(t){throw new TypeError(t)}function s(t,n){this.target=t,this.handler=n}function Proxy(t,n){if(this instanceof Proxy)return function e(t,n){"function"!=typeof t?p("Proxy polyfill only support function target"):n instanceof Object||p("Cannot create proxy with a non-object handler");var o=new s(t,n);function r(){return this instanceof r?o.$construct(this,arguments):o.$call(this,arguments)}return c(r,t),r.prototype=t.prototype,i(r,a(t)),r}(t,n);p("Constructor Proxy requires 'new'")}}("object"==typeof window?window:global);

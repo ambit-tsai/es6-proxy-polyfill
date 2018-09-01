@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="content-type" content="text/html;charset=utf-8">
+	<title>trap-construct</title>
+</head>
+<body>
+	<script src="../../dist/es6-proxy-polyfill.js" type="text/javascript"></script>
+	<script type="text/javascript">
+		function Person(name){
+			document.write("Set this.name to '"+name+"'<br>");
+			this.name = name;
+		}
+		Person.prototype.sayHello = function(){
+			document.write(">"+this.name+": Hey man!<br>");
+		};
+		Person.className = "Person";
+		
+		var NewPerson = new Proxy(Person, {
+			construct: function(Target, args){
+				document.write("Trigger 'construct' trap<br>");
+				return new Target(args[0]);
+			}
+		});
+		
+		document.write("NewPerson's className: '"+NewPerson.className+"' (need 'Object.assign')<br>");
+		
+		document.write("Create a NewPerson object<br>");
+		var person = new NewPerson("Ambit_Tsai");
+		
+		document.write("Call 'sayHello' method<br>");
+		person.sayHello();
+	</script>
+</body>
+</html>
