@@ -1,6 +1,6 @@
 /**
  * ES6 Proxy Polyfill
- * @version 1.0.0
+ * @version 1.2.0
  * @author Ambit Tsai <ambit_tsai@qq.com>
  * @license Apache-2.0
  * @see {@link https://github.com/ambit-tsai/es6-proxy-polyfill}
@@ -67,11 +67,7 @@
 		}
 		if(handler.construct == null){
 			obj = target.apply(thisArg, argsList);
-			if(obj instanceof Object){
-				return obj;
-			}else{
-				return thisArg;
-			}
+			return obj instanceof Object? obj: thisArg;
 		}else if(typeof handler.construct === 'function'){
 			obj = handler.construct(target, argsList);
 			if(obj instanceof Object){
@@ -88,9 +84,10 @@
 	 * Create a Proxy object
 	 * @param {Function} target
 	 * @param {Object} handler
+	 * @param {Object} result
 	 * @returns {Function}
 	 */
-	function createProxy(target, handler){
+	function createProxy(target, handler, result){
 		// Check the type of arguments
 		if(typeof target !== 'function'){
 			throwTypeError('Proxy polyfill only support function target');
@@ -112,6 +109,17 @@
 		P.prototype = target.prototype;	// copy target's prototype
 		setProto(P, getProto(target));	// copy target's [[Prototype]]
 		
+		// The Proxy revocation function
+		result && (result.revoke = function(){
+			member.target = null;
+			member.handler = null;
+			for(var key in P){			// delete proxy's properties
+				P.hasOwnProperty(key) && delete P[key];
+			}
+			P.prototype = {};			// reset proxy's prototype
+			setProto(P, {});			// reset proxy's [[Prototype]]
+		});
+
 		return P;
 	}
 	
@@ -129,11 +137,23 @@
 			throwTypeError("Constructor Proxy requires 'new'");
 		}
 	}
-	
-	// Prevent function declaration from being translated into function expression by UglifyJS.
-	// Function expression called by 'new' will cause an inconsistent result between old IE and
-	// others when runing the code - `this instanceof P`.
-	Proxy.revocable;
+
+	/**
+	 * Create a revocable Proxy object
+	 * @param {Function} target
+	 * @param {Object} handler
+	 * @returns {{proxy, revoke}}
+	 */
+	Proxy.revocable = function(target, handler){
+		var result = {};
+		result.proxy = createProxy(target, handler, result);
+		return result;
+	};
 	
 	global.Proxy = Proxy;
-}(typeof window==='object'? window: global));
+}(
+	typeof window === 'object'? 
+		window: 
+		// Using `this` for web workers & supports Browserify / Webpack.
+		typeof global==='object'? global: this
+));
