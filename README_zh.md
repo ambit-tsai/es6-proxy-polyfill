@@ -9,6 +9,7 @@
 * apply
 * construct
 
+`Proxy.revocable`方法也被支持，但只限于调用上面的'traps'。
 
 #### 安装
 
@@ -44,4 +45,5 @@ var proxy = new Proxy(target, handler);
 <script src="path/to/babel-polyfill.js" type="text/javascript"></script>
 <script src="path/to/es6-proxy-polyfill.js" type="text/javascript"></script>
 ```
-2. 代码已经在Node.js 0.10.48 和 IE8 测试过，而且它也应该能够运行在其他环境下。
+2. 代码已经在Node.js 0.10.48 和 IE8 测试过，而且它也应该能够运行在其他环境下；
+3. 当自身属性被访问时，被撤销的`Proxy`对象不会抛出错误。

@@ -9,6 +9,7 @@ Due to the limitations of ES3, the polyfill supports just a limited number of pr
 * apply
 * construct
 
+The `Proxy.revocable` method is also supported, but only for calls to the above traps.
 
 #### Installation
 
@@ -44,4 +45,5 @@ var proxy = new Proxy(target, handler);
 <script src="path/to/babel-polyfill.js" type="text/javascript"></script>
 <script src="path/to/es6-proxy-polyfill.js" type="text/javascript"></script>
 ```
-2. The code has been tested on Node.js 0.10.48 and IE8, and it may work in other environments too.
+2. The code has been tested on Node.js 0.10.48 and IE8, and it may work in other environments too;
+3. The revoked `Proxy` object will not throw errors when it's properties are accessed.
