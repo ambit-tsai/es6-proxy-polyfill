@@ -10,10 +10,8 @@
     "proxy",
     "es6-proxy",
     "proxy-polyfill",
-    "ie8",
-    "Proxy",
-    "ES6-Proxy",
-    "IE8"
+    "polyfill",
+    "ie8"
   ],
   "author": "ambit_tsai@qq.com",
   "license": "Apache-2.0",
