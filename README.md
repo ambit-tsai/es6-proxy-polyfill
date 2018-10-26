@@ -1,4 +1,4 @@
-<div align="right">[ <a href="README_zh.md">中文</a> ]</div>
+English | <a href="README_zh.md">中文</a>
 
 # ES6 Proxy Polyfill
 This is a polyfill for the `Proxy` constructor based on  **ES3**  supports  **IE8** , Node.js, etc.
@@ -13,7 +13,7 @@ The `Proxy.revocable` method is also supported, but only for calls to the above 
 
 #### Installation
 
-1. Use NPM: `npm install es6-proxy-polyfill`
+1. Use NPM: `npm install -S es6-proxy-polyfill`
 2. Download directly: <a href="src/es6-proxy-polyfill.js" target="_blank">Development Version</a>, <a href="dist/es6-proxy-polyfill.js" target="_blank">Production Version</a>
 
 
