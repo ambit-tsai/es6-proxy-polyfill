@@ -1,4 +1,4 @@
-<div align="right">[ <a href="README.md">English</a> ]</div>
+<a href="README.md">English</a> | 中文
 
 # ES6 Proxy Polyfill
 这是一个基于 **ES3** 的`Proxy`构造器polyfill，支持 **IE8** 和 Node.js 等。
@@ -13,7 +13,7 @@
 
 #### 安装
 
-1. 使用NPM：`npm install es6-proxy-polyfill`
+1. 使用NPM：`npm install -S es6-proxy-polyfill`
 2. 直接下载：<a href="src/es6-proxy-polyfill.js" target="_blank">开发版本</a>，<a href="dist/es6-proxy-polyfill.js" target="_blank">生产版本</a>
 
 
