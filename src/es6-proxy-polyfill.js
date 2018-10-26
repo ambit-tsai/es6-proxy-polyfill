@@ -1,6 +1,6 @@
 /**
  * ES6 Proxy Polyfill
- * @version 1.2.0
+ * @version 1.2.1
  * @author Ambit Tsai <ambit_tsai@qq.com>
  * @license Apache-2.0
  * @see {@link https://github.com/ambit-tsai/es6-proxy-polyfill}
