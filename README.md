@@ -1,4 +1,4 @@
-English | <a href="README.zh-CN.md">中文</a>
+English | <a href="README.zh-CN.md">简体中文</a>
 
 # ES6 Proxy Polyfill
 This is a polyfill for the `Proxy` constructor based on  **ES3**  supports  **IE8** , Node.js, etc.

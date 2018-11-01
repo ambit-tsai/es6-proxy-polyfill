@@ -1,4 +1,4 @@
-<a href="README.md">English</a> | 中文
+<a href="README.md">English</a> | 简体中文
 
 # ES6 Proxy Polyfill
 这是一个基于 **ES3** 的`Proxy`构造器polyfill，支持 **IE8** 和 Node.js 等。
