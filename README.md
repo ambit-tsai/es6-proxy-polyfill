@@ -1,6 +1,8 @@
-English | <a href="README.zh-CN.md">简体中文</a>
+[简体中文](README.zh-CN.md) | English
 
-# ES6 Proxy Polyfill
+
+# ES6 Proxy Polyfill&nbsp;&nbsp;![Version](https://img.shields.io/npm/v/es6-proxy-polyfill.svg)
+
 This is a polyfill for the `Proxy` constructor based on  **ES3**  supports  **IE8** , Node.js, etc.
 
 Refer to <a href="https://tc39.github.io/ecma262/#sec-proxy-target-handler" target="_blank">ECMAScript</a>, and this has no external dependencies. 
@@ -11,14 +13,13 @@ Due to the limitations of ES3, the polyfill supports just a limited number of pr
 
 The `Proxy.revocable` method is also supported, but only for calls to the above traps.
 
-#### Installation
 
+#### Installation
 1. Use NPM: `npm install -S es6-proxy-polyfill`
 2. Download directly: <a href="src/es6-proxy-polyfill.js" target="_blank">Development Version</a>, <a href="dist/es6-proxy-polyfill.js" target="_blank">Production Version</a>
 
 
 #### Usage
-
 1. Browser:
 ```
 <script src="path/to/es6-proxy-polyfill.js" type="text/javascript"></script>
@@ -39,7 +40,6 @@ var proxy = new Proxy(target, handler);
 
 
 #### Notice
-
 1. In ES6, the access to `Proxy` object's properties will be passed to target. In order to simulate this feature, polyfill will try to copy properties from target by using `Object.assign` method, so it's better to load an `Object.assign` polyfill first;
 ```
 <script src="path/to/babel-polyfill.js" type="text/javascript"></script>
