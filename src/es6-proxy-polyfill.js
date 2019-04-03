@@ -5,9 +5,8 @@
  * @license Apache-2.0
  * @see {@link https://github.com/ambit-tsai/es6-proxy-polyfill}
  */
-
-(function (context) {
-	if (context.Proxy) return; // return if Proxy already exist
+(function (global) {
+	if (global.Proxy) return; // return if Proxy already exist
 
 	var noop = function () {},
 		assign = Object.assign || noop,
@@ -153,9 +152,11 @@
 		return result;
 	};
 
-	context.Proxy = Proxy;
+	global.Proxy = Proxy;
 }(
-	typeof window === 'object' ?
-		window :
-		typeof global === 'object' ? global : this // using `this` for web workers & supports Browserify / Webpack
+	typeof window === 'object' 
+		? window
+		: typeof global === 'object' 
+			? global 
+			: this	// using `this` for web workers & supports Browserify / Webpack
 ));
