@@ -28,7 +28,7 @@
 
 
     var Object = this.Object;
-    var supportES5 = Object.keys && /\[native code\]/.test(Object.keys.toString());
+    var supportES5 = Object.keys ? /\[native code\]/.test(Object.keys.toString()) : false;
 
 
     /**
@@ -61,7 +61,7 @@
 
 
     /**
-     * Create Proxy object
+     * Create a Proxy object
      * @param {object} target 
      * @param {object} handler 
      * @returns {{proxy: object, revoke: function}}
@@ -70,11 +70,16 @@
         if (!isObject(target) || !isObject(handler)) {
             throwTypeError('Cannot create proxy with a non-object as target or handler');
         }
-        var internal = new InternalData(target, handler);
+        var proxy, internal = new InternalData(target, handler);
+        if (typeof target === 'function') {
+            proxy = proxyFunction(internal);
+        } else if (target instanceof Array) {
+            proxy = proxyArray(internal);
+        } else {
+            proxy = proxyObject(internal);
+        }
         return {
-            proxy: typeof target === 'function' 
-                ? proxyFunction(internal) 
-                : proxyObject(internal),
+            proxy: proxy,
             revoke: function () {
                 internal[PROXY_TARGET] = UNDEFINED;
                 internal[PROXY_HANDLER] = UNDEFINED;
@@ -96,81 +101,82 @@
 
 
     /**
-     * The implementation of [[Get]] internal method
+     * The implementation of internal method [[Get]]
      * @param {string} property
      * @param {object} receiver
      * @returns {any}
      */
     InternalData.prototype[GET] = function (property, receiver) {
-        validateProxyHanler('get', this[PROXY_HANDLER]);
-
-        if (this[PROXY_HANDLER].get == UNDEFINED) {
+        var handler = this[PROXY_HANDLER];
+        validateProxyHanler('get', handler);
+        if (handler.get == UNDEFINED) {
             return this[PROXY_TARGET][property];
         }
-        if (typeof this[PROXY_HANDLER].get === 'function') {
-            return this[PROXY_HANDLER].get(this[PROXY_TARGET], property, receiver);
+        if (typeof handler.get === 'function') {
+            return handler.get(this[PROXY_TARGET], property, receiver);
         }
-        throwTypeError("Trap 'get' is not a function: " + this[PROXY_HANDLER].get);
+        throwTypeError("Trap 'get' is not a function: " + handler.get);
     };
 
 
     /**
-     * The implementation of [[Get]] internal method
+     * The implementation of internal method [[Set]]
      * @param {string} property
      * @param {any} value
      * @param {object} receiver
      */
     InternalData.prototype[SET] = function (property, value, receiver) {
-        validateProxyHanler('set', this[PROXY_HANDLER]);
-
-        if (this[PROXY_HANDLER].set == UNDEFINED) {
+        var handler = this[PROXY_HANDLER];
+        validateProxyHanler('set', handler);
+        if (handler.set == UNDEFINED) {
             this[PROXY_TARGET][property] = value;
-        } else if (typeof this[PROXY_HANDLER].set === 'function') {
-            var result = this[PROXY_HANDLER].set(this[PROXY_TARGET], property, value, receiver);
+        } else if (typeof handler.set === 'function') {
+            var result = handler.set(this[PROXY_TARGET], property, value, receiver);
             if (!result) {
                 throwTypeError("Trap 'set' returned false for property '" + property + "'");
             }
         } else {
-            throwTypeError("Trap 'set' is not a function: " + this[PROXY_HANDLER].set);
+            throwTypeError("Trap 'set' is not a function: " + handler.set);
         }
     };
 
 
     /**
-     * The implementation of [[Call]] internal method
+     * The implementation of internal method [[Call]]
      * @param {object} thisArg
      * @param {any[]} argList
      * @returns {any}
      */
     InternalData.prototype[CALL] = function (thisArg, argList) {
-        validateProxyHanler('apply', this[PROXY_HANDLER]);
-        
-        if (this[PROXY_HANDLER].apply == UNDEFINED) {
+        var handler = this[PROXY_HANDLER];
+        validateProxyHanler('apply', handler);
+        if (handler.apply == UNDEFINED) {
             return this[PROXY_TARGET].apply(thisArg, argList);
         }
-        if (typeof this[PROXY_HANDLER].apply === 'function') {
-            return this[PROXY_HANDLER].apply(this[PROXY_TARGET], thisArg, argList);
+        if (typeof handler.apply === 'function') {
+            return handler.apply(this[PROXY_TARGET], thisArg, argList);
         }
-        throwTypeError("Trap 'apply' is not a function: " + this[PROXY_HANDLER].apply);
+        throwTypeError("Trap 'apply' is not a function: " + handler.apply);
     };
 
 
     /**
-     * The implementation of [[Construct]] internal method
+     * The implementation of internal method [[Construct]]
      * @param {any[]} argList
      * @param {object} newTarget
      * @returns {object}
      */
     InternalData.prototype[CONSTRUCT] = function (argList, newTarget) {
-        validateProxyHanler('construct', this[PROXY_HANDLER]);
+        var handler = this[PROXY_HANDLER];
+        validateProxyHanler('construct', handler);
 
         var newObj;
-        if (this[PROXY_HANDLER].construct == UNDEFINED) {
+        if (handler.construct == UNDEFINED) {
             newObj = evaluateNew(this[PROXY_TARGET], argList);
-        } else if (typeof this[PROXY_HANDLER].construct === 'function') {
-            newObj = this[PROXY_HANDLER].construct(this[PROXY_TARGET], argList, newTarget);
+        } else if (typeof handler.construct === 'function') {
+            newObj = handler.construct(this[PROXY_TARGET], argList, newTarget);
         } else {
-            throwTypeError("Trap 'construct' is not a function: " + this[PROXY_HANDLER].construct);
+            throwTypeError("Trap 'construct' is not a function: " + handler.construct);
         }
 
         if (isObject(newObj)) {
@@ -204,7 +210,7 @@
         for (var i = 0, len = argList.length; i < len; ++i) {
             params.push('args[' + i + ']');
         }
-        var executor = new Function('Constructor', 'args', 'return new Constructor(' + params.join(', ') + ')');
+        var executor = new Function('Ctor', 'args', 'return new Ctor(' + params.join(', ') + ')');
         return executor(F, argList);
     }
     
@@ -242,7 +248,7 @@
 
 
     /**
-     * Return the [[Prototype]] of specified object
+     * Hack of `Object.getPrototypeOf`
      * @param {object} obj
      * @returns {object}
      */
@@ -252,7 +258,7 @@
 
 
     /**
-     * Set the [[Prototype]] of specified object
+     * Hack of `Object.setPrototypeOf`
      * @param {object} obj
      * @param {object} proto
      * @returns {object}
@@ -264,7 +270,7 @@
 
 
     /**
-     * Return the names of the own properties of an object
+     * Hack of `Object.getOwnPropertyNames`
      * @param {object} obj
      * @returns {string[]}
      */
@@ -280,12 +286,12 @@
 
 
     /**
-     * Create an object with specify [[prototype]]
+     * Hack of `Object.create`
      * @param {object} proto
      * @param {object} props
      * @returns {object}
      */
-    var createObject = supportES5 ? Object.create : function (proto, props) {
+    var objectCreate = supportES5 ? Object.create : function (proto, props) {
         return Object.defineProperties({}, props);
     };
 
@@ -293,42 +299,58 @@
     /**
      * Proxy function
      * @param {InternalData} internal 
-     * @returns {object}
+     * @returns {function}
      */
     function proxyFunction(internal) {
         var target = internal[PROXY_TARGET];
 
         function P() {
             return this instanceof P 
-                ? internal[CONSTRUCT](arguments, P)
+                ? internal[CONSTRUCT](arguments, P)// TODO: P ?
                 : internal[CALL](this, arguments);
         }
         P.prototype = target.prototype;
         setPrototypeOf(P, getPrototypeOf(target));
 
         for (var key in target) {
-            if (!hasOwnProperty(target, key)) {
-                continue;
-            }
+            if (!hasOwnProperty(target, key)) continue;
             if (supportES5) {
-                (function (property) {
-                    var desc = Object.getOwnPropertyDescriptor(target, property);
-                    Object.defineProperty(P, property, {
-                        get: function () {
-                            return internal[GET](property, P);
-                        },
-                        set: function (value) {
-                            internal[SET](property, value, P);
-                        },
-                        enumerable: desc.enumerable,
-                        configurable: desc.configurable
-                    });
-                }(key));
+                var desc = observeProperty(internal, property);
+                Object.defineProperty(P, property, desc);
             } else {
                 P[key] = target[key];
             }
         }
+        return P;
+    }
 
+
+    /**
+     * Proxy array
+     * @param {InternalData} internal 
+     * @returns {object} array-like object
+     */
+    function proxyArray(internal) {
+        var P = proxyObject(internal);
+        var names = getOwnPropertyNames(Array.prototype);
+        var sync = throttle(syncPropertyChange);
+        for (var i = names.length - 1; i >= 0; --i) {
+            if (hasOwnProperty(P, names[i])) continue;
+            (function (property) {
+                var desc = Object.getOwnPropertyDescriptor(Array.prototype, property);
+                Object.defineProperty(P, property, {
+                    get: function () {
+                        sync(this, internal);
+                        return internal[GET](property, this);
+                    },
+                    set: function (value) {
+                        internal[SET](property, value, this);
+                    },
+                    enumerable: desc.enumerable,
+                    configurable: desc.configurable
+                });
+            }(names[i]));
+        }
         return P;
     }
 
@@ -341,24 +363,69 @@
     function proxyObject(internal) {
         var target = internal[PROXY_TARGET];
         var names = getOwnPropertyNames(target);
-        var P, props = {};
+        var props = {};
         for (var i = names.length - 1; i >= 0; --i) {
-            (function (property) {
-                var desc = Object.getOwnPropertyDescriptor(target, property);
-                props[property] = {
-                    get: function () {
-                        return internal[GET](property, P);
-                    },
-                    set: function (value) {
-                        internal[SET](property, value, P);
-                    },
-                    enumerable: desc.enumerable,
-                    configurable: desc.configurable
-                };
-            }(names[i]));
+            props[ names[i] ] = observeProperty(internal, names[i]);
         }
-        P = createObject(getPrototypeOf(target), props);
-        return P;
+        return objectCreate(getPrototypeOf(target), props);
+    }
+
+
+    /**
+     * Observe property
+     * @param {InternalData} internal 
+     * @param {string} property 
+     * @returns {{get: function, set: function, enumerable: boolean, configurable: boolean}}
+     */
+    function observeProperty(internal, property) {
+        var desc = Object.getOwnPropertyDescriptor(internal[PROXY_TARGET], property);
+        return {
+            get: function () {
+                return internal[GET](property, this);
+            },
+            set: function (value) {
+                internal[SET](property, value, this);
+            },
+            enumerable: desc.enumerable,
+            configurable: desc.configurable
+        };
+    }
+
+
+    /**
+     * Throttle
+     * @param {function} fn
+     * @returns {function}
+     */
+    function throttle(fn) {
+        var token = 0;
+        return function () {
+            if (token) return;
+            token = 1;      // 取得令牌
+            var ctx = this, args = arguments;
+            setTimeout(function () {
+                fn.apply(ctx, args);
+                token = 0;  // 释放令牌
+            });
+        };
+    }
+
+
+    /**
+     * Sync property change from P to target
+     * @param {object} P
+     * @param {InternalData} internal 
+     */
+    function syncPropertyChange(P, internal) {
+        var target = internal[PROXY_TARGET];
+        for (var key in P) {
+            if (!(key in target)) {
+                var desc = Object.getOwnPropertyDescriptor(P, key);
+                Object.defineProperty(target, key, desc);
+                desc = observeProperty(internal, key);
+                Object.defineProperty(P, key, desc);
+            }
+        }
     }
 
     
