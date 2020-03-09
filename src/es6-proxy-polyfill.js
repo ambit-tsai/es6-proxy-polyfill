@@ -80,7 +80,6 @@
         } else {
             proxy = proxyObject(internal);
         }
-        if (supportES5) proxyProto(proxy, internal);
         return {
             proxy: proxy,
             revoke: function () {
@@ -280,6 +279,7 @@
                 : internal[CALL](this, arguments);
         }
         P.prototype = target.prototype; // `prototype` is not configurable
+        if (supportES5) proxyProto(P, internal);
 
         for (var key in target) {
             if (!hasOwnProperty(target, key)) continue;
@@ -315,7 +315,19 @@
             }
             descMap[key] = desc;
         }
-        return Object.defineProperties({}, descMap);
+        var P = Object.defineProperties({}, descMap);
+        if (supportES5) {
+            proxyProto(P, internal);
+            Object.defineProperty(Object.getPrototypeOf(P), 'concat', {
+                get: function () {
+                    var val = internal[GET]('concat', P);
+                    return val === Array.prototype.concat
+                        ? val.bind(target)
+                        : val;
+                }
+            });
+        }
+        return P;
     }
 
 
@@ -331,7 +343,9 @@
         for (var i = names.length - 1; i >= 0; --i) {
             descMap[ names[i] ] = observeProperty(target, names[i], internal);
         }
-        return Object.defineProperties({}, descMap);
+        var P = Object.defineProperties({}, descMap);
+        if (supportES5) proxyProto(P, internal);
+        return P;
     }
 
 
