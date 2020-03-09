@@ -29,7 +29,11 @@
 
 
     var Object = root.Object;
-    var supportES5 = Object.keys ? /\[native code\]/.test(Object.keys.toString()) : false;
+    var defineProperty = Object.defineProperty;
+    var defineProperties = Object.defineProperties;
+    var getPrototypeOf = Object.getPrototypeOf;
+    var getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
+    var supportES5 = defineProperty ? /\[native code\]/.test(defineProperty.toString()) : false;
 
 
     /**
@@ -285,7 +289,7 @@
             if (!hasOwnProperty(target, key)) continue;
             if (supportES5) {
                 var desc = observeProperty(target, key, internal);
-                Object.defineProperty(P, key, desc);
+                defineProperty(P, key, desc);
             } else {
                 P[key] = target[key];
             }
@@ -315,10 +319,10 @@
             }
             descMap[key] = desc;
         }
-        var P = Object.defineProperties({}, descMap);
+        var P = defineProperties({}, descMap);
         if (supportES5) {
             proxyProto(P, internal);
-            Object.defineProperty(Object.getPrototypeOf(P), 'concat', {
+            defineProperty(getPrototypeOf(P), 'concat', {   // fix
                 get: function () {
                     var val = internal[GET]('concat', P);
                     return val === Array.prototype.concat
@@ -343,7 +347,7 @@
         for (var i = names.length - 1; i >= 0; --i) {
             descMap[ names[i] ] = observeProperty(target, names[i], internal);
         }
-        var P = Object.defineProperties({}, descMap);
+        var P = defineProperties({}, descMap);
         if (supportES5) proxyProto(P, internal);
         return P;
     }
@@ -356,7 +360,7 @@
      * @returns {object}
      */
     function proxyProto(P, internal) {
-        var oldProto = Object.getPrototypeOf(internal[PROXY_TARGET]);
+        var oldProto = getPrototypeOf(internal[PROXY_TARGET]);
         var proto = oldProto, descMap = {};
         do {
             var names = getOwnPropertyNames(proto);
@@ -366,7 +370,7 @@
                     descMap[key] = observeProperty(proto, key, internal, P);
                 }
             }
-            proto = Object.getPrototypeOf(proto);
+            proto = getPrototypeOf(proto);
         } while (proto);
         var newProto = Object.create(oldProto, descMap);
         Object.setPrototypeOf(P, newProto);
@@ -382,7 +386,7 @@
      * @returns {{get: function, set: function, enumerable: boolean, configurable: boolean}}
      */
     function observeProperty(obj, prop, internal, receiver) {
-        var desc = Object.getOwnPropertyDescriptor(obj, prop);
+        var desc = getOwnPropertyDescriptor(obj, prop);
         return {
             get: function () {
                 return internal[GET](prop, receiver || this);
@@ -405,10 +409,10 @@
         var target = internal[PROXY_TARGET];
         for (var key in P) {
             if (!(key in target)) {
-                var desc = Object.getOwnPropertyDescriptor(P, key);
-                Object.defineProperty(target, key, desc);
+                var desc = getOwnPropertyDescriptor(P, key);
+                defineProperty(target, key, desc);
                 desc = observeProperty(target, key, internal);
-                Object.defineProperty(P, key, desc);
+                defineProperty(P, key, desc);
             }
         }
     }
