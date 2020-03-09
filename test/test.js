@@ -31,7 +31,7 @@ describe('Throw when handler is not an object', function () {
 
 
 
-describe('Trap `get` is a function', function () {
+describe('[get] trap is a function', function () {
     var obj = {a: 1};
     var proxy = new Proxy(obj, {
         get: function (target, property, receiver) {
@@ -44,7 +44,7 @@ describe('Trap `get` is a function', function () {
 });
 
 
-describe('Trap `get` is undefined', function () {
+describe('[get] trap is undefined', function () {
     var proxy = new Proxy({a: 1}, {
         get: undefined
     });
@@ -52,7 +52,7 @@ describe('Trap `get` is undefined', function () {
 });
 
 
-describe('Trap `get` is null', function () {
+describe('[get] trap is null', function () {
     var proxy = new Proxy({a: 1}, {
         get: null
     });
@@ -60,7 +60,7 @@ describe('Trap `get` is null', function () {
 });
 
 
-describe('Throw when trap `get` is not a function', function () {
+describe('[get] throw when trap s not a function', function () {
     expect(function () {
         var proxy = new Proxy({a: 1}, {
             get: 2
@@ -73,7 +73,7 @@ describe('Throw when trap `get` is not a function', function () {
 
 
 
-describe('Trap `set` is a function', function () {
+describe('[set] trap is a function', function () {
     var obj = {a: 1};
     var proxy = new Proxy(obj, {
         set: function (target, property, value, receiver) {
@@ -88,7 +88,7 @@ describe('Trap `set` is a function', function () {
 });
 
 
-describe('Trap `set` is undefined', function () {
+describe('[set] trap is undefined', function () {
     var proxy = new Proxy({a: 1}, {
         set: undefined
     });
@@ -97,7 +97,7 @@ describe('Trap `set` is undefined', function () {
 });
 
 
-describe('Trap `set` is null', function () {
+describe('[set] trap is null', function () {
     var proxy = new Proxy({a: 1}, {
         set: null
     });
@@ -106,7 +106,7 @@ describe('Trap `set` is null', function () {
 });
 
 
-describe('Throw when trap `set` is not a function', function () {
+describe('[set] throw when trap is not a function', function () {
     expect(function () {
         var proxy = new Proxy({a: 1}, {
             set: 2
@@ -118,7 +118,7 @@ describe('Throw when trap `set` is not a function', function () {
 });
 
 
-describe('Throw when trap `set` return false in strict mode', function () {
+describe('[set] throw when trap return false in strict mode', function () {
     expect(function () {
         'use strict'
         var proxy = new Proxy({a: 1}, {
@@ -134,7 +134,7 @@ describe('Throw when trap `set` return false in strict mode', function () {
 
 
 
-describe('Trap `apply` is a function', function () {
+describe('[apply] trap is a function', function () {
     function fn() {
         return 1;
     }
@@ -150,7 +150,7 @@ describe('Trap `apply` is a function', function () {
 });
 
 
-describe('Trap `apply` is undefined', function () {
+describe('[apply] trap is undefined', function () {
     function fn() {
         return 1;
     }
@@ -161,7 +161,7 @@ describe('Trap `apply` is undefined', function () {
 });
 
 
-describe('Trap `apply` is null', function () {
+describe('[apply] trap is null', function () {
     function fn() {
         return 1;
     }
@@ -172,7 +172,7 @@ describe('Trap `apply` is null', function () {
 });
 
 
-describe('Throw when trap `apply` is not a function', function () {
+describe('[apply] throw when trap is not a function', function () {
     expect(function () {
         var proxy = new Proxy({}, {
             apply: 1
@@ -184,7 +184,7 @@ describe('Throw when trap `apply` is not a function', function () {
 });
 
 
-describe('Throw when calling trap `apply` with non-function target', function () {
+describe('[apply] throw when calling trap with non-function target', function () {
     expect(function () {
         var proxy = new Proxy({}, {
             apply: function () {}
@@ -197,7 +197,7 @@ describe('Throw when calling trap `apply` with non-function target', function ()
 
 
 
-describe('Trap `construct` is a function', function () {
+describe('[construct] trap is a function', function () {
     function Test(a) {
         this.a = a;
     }
@@ -212,7 +212,7 @@ describe('Trap `construct` is a function', function () {
 });
 
 
-describe('Trap `construct` is undefined', function () {
+describe('[construct] trap is undefined', function () {
     function Test(a) {
         this.a = a;
     }
@@ -223,7 +223,7 @@ describe('Trap `construct` is undefined', function () {
 });
 
 
-describe('Trap `construct` is null', function () {
+describe('[construct] trap is null', function () {
     function Test(a) {
         this.a = a;
     }
@@ -234,7 +234,7 @@ describe('Trap `construct` is null', function () {
 });
 
 
-describe('Throw when trap `construct` is not a function', function () {
+describe('[construct] throw when trap is not a function', function () {
     function Test(a) {
         this.a = a;
     }
@@ -249,7 +249,7 @@ describe('Throw when trap `construct` is not a function', function () {
 });
 
 
-describe('Throw when trap `construct` does not return an object', function () {
+describe('[construct] throw when trap does not return an object', function () {
     function Test(a) {
         this.a = a;
     }
@@ -266,7 +266,7 @@ describe('Throw when trap `construct` does not return an object', function () {
 });
 
 
-describe('Throw when calling trap `construct` with non-constructor target', function () {
+describe('[construct] throw when calling trap with non-constructor target', function () {
     expect(function () {
         var proxy = new Proxy({}, {
             construct: function () {
@@ -280,13 +280,13 @@ describe('Throw when calling trap `construct` with non-constructor target', func
 });
 
 
-describe('Call `Proxy.revocable` as a function', function () {
+describe('[revocable] call `Proxy.revocable` as a function', function () {
     var revocable = Proxy.revocable({}, {});
     expect(revocable.revoke).to.be.a(Function);
 });
 
 
-describe('Throw when calling `Proxy.revocable` as a constructor', function () {
+describe('[revocable] throw when calling `Proxy.revocable` as a constructor', function () {
     expect(function () {
         new Proxy.revocable({}, {});
     }).to.throwException(function (ex) {
@@ -295,7 +295,7 @@ describe('Throw when calling `Proxy.revocable` as a constructor', function () {
 });
 
 
-describe('Throw when performing `get` on a revoked proxy', function () {
+describe('[revocable] throw when performing `get` on a revoked proxy', function () {
     expect(function () {
         var revocable = Proxy.revocable({a: 1}, {});
         revocable.revoke();
@@ -306,7 +306,7 @@ describe('Throw when performing `get` on a revoked proxy', function () {
 });
 
 
-describe('Throw when performing `set` on a revoked proxy', function () {
+describe('[revocable] throw when performing `set` on a revoked proxy', function () {
     expect(function () {
         var revocable = Proxy.revocable({a: 1}, {});
         revocable.revoke();
@@ -317,7 +317,7 @@ describe('Throw when performing `set` on a revoked proxy', function () {
 });
 
 
-describe('Throw when performing `apply` on a revoked proxy', function () {
+describe('[revocable] throw when performing `apply` on a revoked proxy', function () {
     expect(function () {
         var revocable = Proxy.revocable(function () {}, {});
         revocable.revoke();
@@ -328,7 +328,7 @@ describe('Throw when performing `apply` on a revoked proxy', function () {
 });
 
 
-describe('Throw when performing `construct` on a revoked proxy', function () {
+describe('[revocable] throw when performing `construct` on a revoked proxy', function () {
     expect(function () {
         var revocable = Proxy.revocable(function () {}, {});
         revocable.revoke();
@@ -336,4 +336,111 @@ describe('Throw when performing `construct` on a revoked proxy', function () {
     }).to.throwException(function (ex) {
         expect(ex).to.be.a(TypeError);
     });
+});
+
+
+describe('[Array] basic function', function () {
+    var proxy = new Proxy([1, 2, 3], {
+        get: function (target, property, receiver) {
+            return property == 0 && receiver === proxy
+                ? 9
+                : target[property];
+        },
+        set: function (target, property, value, receiver) {
+            if (property == 1 && receiver === proxy) {
+                target[1] = value + 1;
+            } else {
+                target[property] = value;
+            }
+            return true;
+        }
+    });
+    proxy[0] = 4;
+    proxy[1] = 5;
+    expect(proxy).to.eql([9, 6, 3]);
+    expect(proxy.length).to.be(3);
+    expect(proxy instanceof Array).to.be(true);
+});
+
+
+describe('[Array] method `push`', function () {
+    var proxy = new Proxy([], {});
+    proxy.push(1, 2, 3);
+    proxy[2] = 8;
+    expect(proxy).to.eql([1, 2, 8]);
+});
+
+
+describe('[Array] method `pop`', function () {
+    var proxy = new Proxy([1, 2, 3], {});
+    var val = proxy.pop();
+    expect(val).to.be(3);
+    expect(proxy).to.eql([1, 2]);
+});
+
+
+describe('[Array] method `unshift`', function () {
+    var proxy = new Proxy([1, 2, 3], {});
+    proxy.unshift(8);
+    expect(proxy).to.eql([8, 1, 2, 3]);
+});
+
+
+describe('[Array] method `shift`', function () {
+    var proxy = new Proxy([1, 2, 3], {});
+    var val = proxy.shift();
+    expect(val).to.be(1);
+    expect(proxy).to.eql([2, 3]);
+});
+
+
+describe('[Array] method `join`', function () {
+    var proxy = new Proxy([1, 2, 3], {});
+    expect(proxy.join('-')).to.be('1-2-3');
+});
+
+
+describe('[Array] method `reverse`', function () {
+    var proxy = new Proxy([1, 2, 3], {});
+    proxy.reverse();
+    expect(proxy).to.eql([3, 2, 1]);
+});
+
+
+describe('[Array] method `sort`', function () {
+    var proxy = new Proxy([3, 2, 1], {});
+    proxy.sort();
+    expect(proxy).to.eql([1, 2, 3]);
+});
+
+
+describe('[Array] method `concat`', function () {
+    var proxy = new Proxy([1, 2], {});
+    expect(proxy.concat([3, 4])).to.eql([1, 2, 3, 4]);
+});
+
+
+describe('[Array] method `slice`', function () {
+    var proxy = new Proxy([1, 2, 3, 4, 5], {});
+    expect(proxy.slice(1, 3)).to.eql([2, 3]);
+});
+
+
+describe('[Array] method `splice`', function () {
+    var proxy = new Proxy([1, 2, 3, 4, 5], {});
+    var arr = proxy.splice(1, 2, 8, 9, 0);
+    expect(arr).to.eql([2, 3]);
+    expect(proxy).to.eql([1, 8, 9, 0, 4, 5]);
+});
+
+
+describe('[Array] method `toString`', function () {
+    var proxy = new Proxy([1, 2, 3], {});
+    expect(proxy.toString()).to.be("1,2,3");
+});
+
+
+describe('[Array] method `toLocaleString`', function () {
+    var proxy = new Proxy([1, 2, 3], {});
+    expect(proxy.toLocaleString()).to.be("1,2,3");
 });
