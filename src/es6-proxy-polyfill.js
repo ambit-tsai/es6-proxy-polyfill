@@ -311,6 +311,8 @@
             var key = names[i];
             var desc = observeProperty(target, key, internal);
             if (key === 'length') {
+                // Observe the change of `length`, and synchronize
+                // the properties of Proxy object to target array
                 desc.set = function (value) {
                     var needSync = value > target.length;
                     internal[SET]('length', value, this);
@@ -320,9 +322,11 @@
             descMap[key] = desc;
         }
         var P = defineProperties({}, descMap);
+
         if (supportES5) {
             proxyProto(P, internal);
-            defineProperty(getPrototypeOf(P), 'concat', {   // fix
+            // Fix: `concat` does not work correctly on array-like object
+            defineProperty(getPrototypeOf(P), 'concat', {
                 get: function () {
                     var val = internal[GET]('concat', P);
                     return val === Array.prototype.concat
