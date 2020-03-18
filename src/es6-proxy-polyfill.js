@@ -33,7 +33,7 @@
     var defineProperties = Object.defineProperties;
     var getPrototypeOf = Object.getPrototypeOf;
     var getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
-    var supportES5 = defineProperty ? /\[native code\]/.test(defineProperty.toString()) : false;
+    var supportES5 = defineProperties ? /\[native code\]/.test(defineProperties.toString()) : false;
 
 
     /**
