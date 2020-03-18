@@ -254,7 +254,7 @@
 
 
     /**
-     * Hack of `Object.getOwnPropertyNames`
+     * Hack `Object.getOwnPropertyNames`
      * @param {object} obj
      * @returns {string[]}
      */
@@ -266,6 +266,18 @@
             } 
         }
         return names;
+    };
+
+
+    /**
+     * Hack `Object.setPrototypeOf`
+     * @param {object} obj
+     * @param {object} proto
+     * @returns {object}
+     */
+    var setPrototypeOf = Object.setPrototypeOf || function (obj, proto) {
+        obj.__proto__ = proto;
+        return obj;
     };
 
 
@@ -377,7 +389,7 @@
             proto = getPrototypeOf(proto);
         } while (proto);
         var newProto = Object.create(oldProto, descMap);
-        Object.setPrototypeOf(P, newProto);
+        setPrototypeOf(P, newProto);
     }
 
 
