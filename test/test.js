@@ -441,6 +441,7 @@ describe('[Array] method `toString`', function () {
 
 
 describe('[Array] method `toLocaleString`', function () {
-    var proxy = new Proxy([1, 2, 3], {});
-    expect(proxy.toLocaleString()).to.be("1,2,3");
+    var arr = [1, 2, 3];
+    var proxy = new Proxy(arr, {});
+    expect(proxy.toLocaleString()).to.be(arr.toLocaleString());
 });
