@@ -255,15 +255,14 @@
 
     /**
      * Hack `Object.getOwnPropertyNames`
-     * @param {object} obj
-     * @returns {string[]}
      */
-    var getOwnPropertyNames = supportES5 ? Object.getOwnPropertyNames : function (obj) {
+    var getOwnPropertyNames = Object.getOwnPropertyNames || function (obj) {
         var names = [];
         for (var key in obj) {
             if (hasOwnProperty(obj, key)) {
                 names.push(key);
-            } 
+
+            }
         }
         return names;
     };
@@ -271,13 +270,31 @@
 
     /**
      * Hack `Object.setPrototypeOf`
-     * @param {object} obj
-     * @param {object} proto
-     * @returns {object}
      */
     var setPrototypeOf = Object.setPrototypeOf || function (obj, proto) {
         obj.__proto__ = proto;
         return obj;
+    };
+
+
+    /**
+     * Hack `Object.create`
+     */
+    var objectCreate = supportES5 ? Object.create : function (_, props) {
+        return defineProperties({}, props);
+    };
+
+
+    /**
+     * Hack `Object.assign`
+     */
+    var objectAssign = Object.assign || function (target, source) {
+        for (var key in source) {
+            if (hasOwnProperty(source, key)) {
+                target[key] = source[key];
+            }
+        }
+        return target;
     };
 
 
@@ -295,17 +312,21 @@
                 : internal[CALL](this, arguments);
         }
         P.prototype = target.prototype; // `prototype` is not configurable
-        if (supportES5) proxyProto(P, internal);
 
-        for (var key in target) {
-            if (!hasOwnProperty(target, key)) continue;
-            if (supportES5) {
-                var desc = observeProperty(target, key, internal);
-                defineProperty(P, key, desc);
-            } else {
-                P[key] = target[key];
+        if (supportES5) {
+            var descMap = observeProto(internal);
+            var newProto = objectCreate(getPrototypeOf(target), descMap);
+            setPrototypeOf(P, newProto);
+
+            descMap = observeProperties(target, internal);
+            for (var key in descMap) {
+                if (hasOwnProperty(P, key)) delete descMap[key];
             }
+            defineProperties(P, descMap);
+        } else {
+            objectAssign(P, target);
         }
+        
         return P;
     }
 
@@ -317,37 +338,30 @@
      */
     function proxyArray(internal) {
         var target = internal[PROXY_TARGET];
-        var names = getOwnPropertyNames(target);
-        var descMap = {};
-        for (var i = names.length - 1; i >= 0; --i) {
-            var key = names[i];
-            var desc = observeProperty(target, key, internal);
-            if (key === 'length') {
-                // Observe the change of `length`, and synchronize
-                // the properties of Proxy object to target array
-                desc.set = function (value) {
-                    var needSync = value > target.length;
-                    internal[SET]('length', value, this);
-                    if (needSync) syncArrayElement(this, internal);
-                };
-            }
-            descMap[key] = desc;
-        }
-        var P = defineProperties({}, descMap);
 
+        var descMap, newProto;
         if (supportES5) {
-            proxyProto(P, internal);
+            descMap = observeProto(internal);
             // Fix: `concat` does not work correctly on array-like object
-            defineProperty(getPrototypeOf(P), 'concat', {
-                get: function () {
-                    var val = internal[GET]('concat', P);
-                    return val === Array.prototype.concat
-                        ? val.bind(target)
-                        : val;
-                }
-            });
+            descMap.concat.get = function () {
+                var val = internal[GET]('concat', this);
+                return val === Array.prototype.concat
+                    ? val.bind(target)
+                    : val;
+            };
+            newProto = objectCreate(getPrototypeOf(target), descMap);
         }
-        return P;
+
+        descMap = observeProperties(target, internal);
+        // Observe the change of `length`, and synchronize
+        // the properties of Proxy object to target array
+        descMap.length.set = function (value) {
+            var needSync = value > target.length;
+            internal[SET]('length', value, this);
+            if (needSync) syncArrayElement(this, internal);
+        };
+        
+        return objectCreate(newProto, descMap);
     }
 
 
@@ -358,57 +372,64 @@
      */
     function proxyObject(internal) {
         var target = internal[PROXY_TARGET];
-        var names = getOwnPropertyNames(target);
-        var descMap = {};
-        for (var i = names.length - 1; i >= 0; --i) {
-            descMap[ names[i] ] = observeProperty(target, names[i], internal);
+        var descMap, newProto;
+        if (supportES5) {
+            descMap = observeProto(internal);
+            newProto = objectCreate(getPrototypeOf(target), descMap);
         }
-        var P = defineProperties({}, descMap);
-        if (supportES5) proxyProto(P, internal);
-        return P;
+
+        descMap = observeProperties(target, internal);
+        return objectCreate(newProto, descMap);
     }
 
 
     /**
-     * Proxy [[Prototype]]
-     * @param {object} P 
+     * Observe [[Prototype]]
      * @param {InternalData} internal 
-     * @returns {object}
+     * @returns {object} descriptors
      */
-    function proxyProto(P, internal) {
-        var oldProto = getPrototypeOf(internal[PROXY_TARGET]);
-        var proto = oldProto, descMap = {};
-        do {
-            var names = getOwnPropertyNames(proto);
-            for (var i = names.length - 1; i >= 0; --i) {
-                var key = names[i];
-                if (!hasOwnProperty(descMap, key)) {
-                    descMap[key] = observeProperty(proto, key, internal, P);
-                }
-            }
-            proto = getPrototypeOf(proto);
-        } while (proto);
-        var newProto = Object.create(oldProto, descMap);
-        setPrototypeOf(P, newProto);
+    function observeProto(internal) {
+        var descMap = {};
+        var proto = internal[PROXY_TARGET];
+        while (proto = getPrototypeOf(proto)) {
+            var props = observeProperties(proto, internal);
+            objectAssign(descMap, props);
+        }
+        return descMap;
+    }
+
+
+    /**
+     * Observe properties
+     * @param {object} obj
+     * @param {InternalData} internal 
+     * @returns {object} descriptors
+     */
+    function observeProperties(obj, internal) {
+        var names = getOwnPropertyNames(obj);
+        var descMap = {};
+        for (var i = names.length - 1; i >=0; --i) {
+            descMap[ names[i] ] = observeProperty(obj, names[i], internal);
+        }
+        return descMap;
     }
 
 
     /**
      * Observe property
      * @param {object} obj
-     * @param {string} prop 
+     * @param {string} prop
      * @param {InternalData} internal 
-     * @param {object} [receiver] 
      * @returns {{get: function, set: function, enumerable: boolean, configurable: boolean}}
      */
-    function observeProperty(obj, prop, internal, receiver) {
+    function observeProperty(obj, prop, internal) {
         var desc = getOwnPropertyDescriptor(obj, prop);
         return {
             get: function () {
-                return internal[GET](prop, receiver || this);
+                return internal[GET](prop, this);
             },
             set: function (value) {
-                internal[SET](prop, value, receiver || this);
+                internal[SET](prop, value, this);
             },
             enumerable: desc.enumerable,
             configurable: desc.configurable
