@@ -3,11 +3,13 @@
 
 # ES6 Proxy Polyfill&nbsp;&nbsp;![Version](https://img.shields.io/npm/v/es6-proxy-polyfill.svg)
 
-This is a polyfill for the `Proxy` constructor based on  **ES3**  supports  **IE8** , Node.js, etc.
+This is a polyfill for ES6 `Proxy`, supports  **IE6+** , Node.js, etc.
 
-Refer to <a href="https://tc39.github.io/ecma262/#sec-proxy-target-handler" target="_blank">ECMAScript</a>, and this has no external dependencies. 
+So far, it supports more features than the <a href="https://github.com/GoogleChrome/proxy-polyfill" target="_blank">proxy-polyfill</a> of GoogleChrome.
 
-Due to the limitations of ES3, the polyfill supports just a limited number of proxy 'traps':
+The polyfill supports just a limited number of proxy 'traps':
+* get
+* set
 * apply
 * construct
 
@@ -21,29 +23,35 @@ The `Proxy.revocable` method is also supported, but only for calls to the above 
 
 #### Usage
 1. Browser:
-```
+```html
+<!--[if lte IE 8]>
+<script src="path/to/object-defineproperty-ie.js" type="text/javascript"></script>
+<![endif]-->
 <script src="path/to/es6-proxy-polyfill.js" type="text/javascript"></script>
 <script type="text/javascript">
-    var target = function(){/* code */};
-    var handler = {/* code */};
-    var proxy = new Proxy(target, handler);
+    var proxy = new Proxy({}, {});
 </script>
 ```
 2. Node.js:
-```
-require('es6-proxy-polyfill');
+```javascript
+const Proxy = require('es6-proxy-polyfill');
 
-var target = function(){/* code */};
-var handler = {/* code */};
-var proxy = new Proxy(target, handler);
+let proxy = new Proxy({}, {});
 ```
 
 
 #### Notice
-1. In ES6, the access to `Proxy` object's properties will be passed to target. In order to simulate this feature, polyfill will try to copy properties from target by using `Object.assign` method, so it's better to load an `Object.assign` polyfill first;
-```
-<script src="path/to/babel-polyfill.js" type="text/javascript"></script>
-<script src="path/to/es6-proxy-polyfill.js" type="text/javascript"></script>
-```
-2. The code has been tested on Node.js 0.10.48 and IE8, and it may work in other environments too;
-3. The revoked `Proxy` object will not throw errors when it's properties are accessed.
+1. For **non-array** object, the properties you want to proxy **must be known at creation time**;
+1. In IE8 or below, `Object.defineProperties` and `Object.getOwnPropertyDescriptor` are provided by library "<a href="https://github.com/ambit-tsai/object-defineproperty-ie" target="_blank">object-defineproperty-ie</a>";
+1. Support `UMD`.
+
+
+#### Testing
+1. Access `test/browser/index.html` with browser
+1. Tested in IE6, IE7, IE8
+
+
+#### Contact Us
+1. WeChat: ambit_tsai
+1. QQ Group: 663286147
+1. E-mail: ambit_tsai@qq.com

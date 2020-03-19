@@ -3,15 +3,17 @@
 
 # ES6 Proxy Polyfill&nbsp;&nbsp;![Version](https://img.shields.io/npm/v/es6-proxy-polyfill.svg)
 
-一个基于 **ES3** 的 `Proxy` 构造器 polyfill ，支持 **IE8** 和 Node.js 等。
+一个 ES6 `Proxy` 的兼容库，支持 **IE6+** 和 Node.js 等。
 
-参照 <a href="https://tc39.github.io/ecma262/#sec-proxy-target-handler" target="_blank">ECMAScript</a> 标准编写，无外部依赖。
+迄今为止，它支持比 GoogleChrome <a href="https://github.com/GoogleChrome/proxy-polyfill" target="_blank">proxy-polyfill</a> 更多的特性。
 
-由于 ES3 的限制，该 polyfill 只支持有限的 'traps' 代理：
+该 polyfill 只支持有限的 'trap' 代理：
+* get
+* set
 * apply
 * construct
 
-`Proxy.revocable` 方法也被支持，但只限于调用上面的 'traps' 。
+`Proxy.revocable` 方法也被支持，但只限于调用上面的 'trap' 。
 
 
 #### 安装
@@ -21,29 +23,35 @@
 
 #### 用法
 1. 浏览器：
-```
+```html
+<!--[if lte IE 8]>
+<script src="path/to/object-defineproperty-ie.js" type="text/javascript"></script>
+<![endif]-->
 <script src="path/to/es6-proxy-polyfill.js" type="text/javascript"></script>
 <script type="text/javascript">
-    var target = function(){/* code */};
-    var handler = {/* code */};
-    var proxy = new Proxy(target, handler);
+    var proxy = new Proxy({}, {});
 </script>
 ```
 2. Node.js：
-```
-require('es6-proxy-polyfill');
+```javascript
+var Proxy = require('es6-proxy-polyfill');
 
-var target = function(){/* code */};
-var handler = {/* code */};
-var proxy = new Proxy(target, handler);
+var proxy = new Proxy({}, {});
 ```
 
 
 #### 注意
-1. 在 ES6 中，对 `Proxy` 对象属性的访问将会被传递给目标对象。为了模拟这个特性，polyfill 会尝试使用 `Object.assign` 方法从目标对象复制属性，因此最好先加载一个 `Object.assign` 的 polyfill ；
-```
-<script src="path/to/babel-polyfill.js" type="text/javascript"></script>
-<script src="path/to/es6-proxy-polyfill.js" type="text/javascript"></script>
-```
-2. 代码已经在 Node.js 0.10.48 和 IE8 测试过，而且它也应该能够运行在其他环境下；
-3. 当自身属性被访问时，被撤销的 `Proxy` 对象不会抛出错误。
+1. 对于**非数组**对象，想要代理的属性**必须在创建时就已存在**；
+1. 在 IE8 及以下，`Object.defineProperties` 与 `Object.getOwnPropertyDescriptor` 由 "<a href="https://github.com/ambit-tsai/object-defineproperty-ie" target="_blank">object-defineproperty-ie</a>" 库提供支持；
+1. 支持 `UMD`。
+
+
+#### 测试
+1. 使用浏览器访问 `test/browser/index.html`
+1. 已在IE6、IE7、IE8中进行测试
+
+
+#### 联系
+1. 微信: ambit_tsai
+1. QQ群: 663286147
+1. 邮箱: ambit_tsai@qq.com
