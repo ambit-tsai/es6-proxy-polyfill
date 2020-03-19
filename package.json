@@ -1,23 +1,21 @@
 {
   "name": "es6-proxy-polyfill",
-  "version": "1.2.1",
+  "version": "2.0.0",
   "description": "Proxy polyfill based on ES3 supports IE8, Node.js, etc.",
   "main": "src/es6-proxy-polyfill.js",
   "scripts": {
-    "build": "uglifyjs src/es6-proxy-polyfill.js -c -m reserved=[Proxy] --ie8 --comments -o dist/es6-proxy-polyfill.js"
+    "build": "uglifyjs src/es6-proxy-polyfill.js -c -m --ie8 --comments -o dist/es6-proxy-polyfill.js"
   },
   "keywords": [
     "proxy",
     "es6-proxy",
     "proxy-polyfill",
-    "ie8",
-    "Proxy",
-    "ES6-Proxy",
-    "IE8"
+    "polyfill",
+    "ie8"
   ],
   "author": "ambit_tsai@qq.com",
   "license": "Apache-2.0",
-	"repository": {
+  "repository": {
     "type": "git",
     "url": "git+https://github.com/ambit-tsai/es6-proxy-polyfill.git"
   },

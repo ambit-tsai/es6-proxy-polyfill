@@ -1,161 +1,459 @@
 /**
  * ES6 Proxy Polyfill
- * @version 1.2.1
+ * @version 2.0.0
  * @author Ambit Tsai <ambit_tsai@qq.com>
  * @license Apache-2.0
  * @see {@link https://github.com/ambit-tsai/es6-proxy-polyfill}
  */
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(factory(root));          // AMD
+    } else if (typeof module === 'object' && module.exports) {
+        module.exports = factory(root); // CommonJS
+    } else if (!root.Proxy) {
+        root.Proxy = factory(root);
+    }
+}(typeof globalThis === 'object' && globalThis
+|| typeof window === 'object' && window
+|| typeof global === 'object' && global
+|| typeof self === 'object' && self
+|| this, function (root) {
+    // Constant variables
+    var UNDEFINED;  // => undefined
+    var PROXY_TARGET = '[[ProxyTarget]]';
+    var PROXY_HANDLER = '[[ProxyHandler]]';
+    var GET = '[[Get]]';
+    var SET = '[[Set]]';
+    var CALL = '[[Call]]';
+    var CONSTRUCT = '[[Construct]]';
 
-(function (context) {
-	if (context.Proxy) return; // return if Proxy already exist
 
-	var noop = function () {},
-		assign = Object.assign || noop,
-		getProto = Object.getPrototypeOf || noop,
-		setProto = Object.setPrototypeOf || noop;
+    var Object = root.Object;
+    var defineProperty = Object.defineProperty;
+    var defineProperties = Object.defineProperties;
+    var getPrototypeOf = Object.getPrototypeOf;
+    var getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
+    var supportES5 = defineProperties ? /\[native code\]/.test(defineProperties.toString()) : false;
 
-	/**
-	 * Throw a type error
-	 * @param {String} message
-	 */
-	function throwTypeError(message) {
-		throw new TypeError(message);
-	}
 
-	/**
-	 * The internal member constructor
-	 * @constructor
-	 * @param {Function} target
-	 * @param {Object} handler
-	 */
-	function InternalMember(target, handler) {
-		this.target = target; // [[ProxyTarget]]
-		this.handler = handler; // [[ProxyHandler]]
-	}
+    /**
+     * The Proxy constructor
+     * @constructor
+     * @param {object} target
+     * @param {object} handler
+     */
+    function Proxy(target, handler) {
+        if (this instanceof Proxy) {
+            return createProxy(target, handler).proxy;
+        } else {
+            throwTypeError("Constructor Proxy requires 'new'");
+        }
+    }
 
-	/**
-	 * The [[Call]] internal method
-	 * @param {Object} thisArg
-	 * @param {Object} argsList
-	 */
-	InternalMember.prototype.$call = function (thisArg, argsList) {
-		var target = this.target,
-			handler = this.handler;
-		if (!handler) {
-			throwTypeError('Cannot perform \'call\' on a proxy that has been revoked');
-		}
-		if (handler.apply == null) {
-			return target.apply(thisArg, argsList);
-		} else if (typeof handler.apply === 'function') {
-			return handler.apply(target, thisArg, argsList);
-		} else {
-			throwTypeError('Proxy handler\'s apply trap must be a function');
-		}
-	};
 
-	/**
-	 * The [[Construct]] internal method
-	 * @param {Object} thisArg
-	 * @param {Object} argsList
-	 * @returns {Object}
-	 */
-	InternalMember.prototype.$construct = function (thisArg, argsList) {
-		var target = this.target,
-			handler = this.handler,
-			result;
-		if (!handler) {
-			throwTypeError('Cannot perform \'construct\' on a proxy that has been revoked');
-		}
-		if (handler.construct == null) {
-			result = target.apply(thisArg, argsList);
-			return result instanceof Object ? result : thisArg;
-		} else if (typeof handler.construct === 'function') {
-			result = handler.construct(target, argsList);
-			if (result instanceof Object) {
-				return result;
-			} else {
-				throwTypeError('Proxy handler\'s construct trap must return an object');
-			}
-		} else {
-			throwTypeError('Proxy handler\'s construct trap must be a function');
-		}
-	};
+    /**
+     * Create a revocable Proxy object
+     * @param {object} target 
+     * @param {object} handler 
+     * @returns {{proxy: object, revoke: function}}
+     */
+    Proxy.revocable = function (target, handler) {
+        if (this instanceof Proxy.revocable) {
+            throwTypeError("Proxy.revocable is not a constructor");
+        }
+        return createProxy(target, handler);
+    };
 
-	/**
-	 * Create a Proxy object
-	 * @param {Function} target
-	 * @param {Object} handler
-	 * @param {Object} revokeResult
-	 * @returns {Function}
-	 */
-	function createProxy(target, handler, revokeResult) {
-		// Check the type of arguments
-		if (typeof target !== 'function') {
-			throwTypeError('Proxy polyfill only support function target');
-		} else if (!(handler instanceof Object)) {
-			throwTypeError('Cannot create proxy with a non-object handler');
-		}
 
-		// Create an internal member object
-		var member = new InternalMember(target, handler);
+    /**
+     * Create a Proxy object
+     * @param {object} target 
+     * @param {object} handler 
+     * @returns {{proxy: object, revoke: function}}
+     */
+    function createProxy(target, handler) {
+        if (!isObject(target) || !isObject(handler)) {
+            throwTypeError('Cannot create proxy with a non-object as target or handler');
+        }
+        var proxy;
+        var internal = new InternalData(target, handler);
+        if (typeof target === 'function') {
+            proxy = proxyFunction(internal);
+        } else if (target instanceof Array) {
+            proxy = proxyArray(internal);
+        } else {
+            proxy = proxyObject(internal);
+        }
+        return {
+            proxy: proxy,
+            revoke: function () {
+                internal[PROXY_TARGET] = UNDEFINED;
+                internal[PROXY_HANDLER] = UNDEFINED;
+            }
+        };
+    }
 
-		// Create a proxy object - `P`
-		function P() {
-			return this instanceof P ?
-				member.$construct(this, arguments) :
-				member.$call(this, arguments);
-		}
 
-		assign(P, target); // copy target's properties
-		P.prototype = target.prototype; // copy target's prototype
-		setProto(P, getProto(target)); // copy target's [[Prototype]]
+    /**
+     * The object to store internal data 
+     * @constructor
+     * @param {object} target 
+     * @param {object} handler 
+     */
+    function InternalData(target, handler) {
+        this[PROXY_TARGET] = target;
+        this[PROXY_HANDLER] = handler;
+    }
 
-		if (revokeResult) {
-			// Set the revocation function
-			revokeResult.revoke = function () {
-				member.target = null;
-				member.handler = null;
-				for (var key in P) { // delete proxy's properties
-					P.hasOwnProperty(key) && delete P[key];
-				}
-				P.prototype = {}; // reset proxy's prototype
-				setProto(P, {}); // reset proxy's [[Prototype]]
-			};
-		}
 
-		return P;
-	}
+    /**
+     * The implementation of internal method [[Get]]
+     * @param {string} property
+     * @param {object} receiver
+     * @returns {any}
+     */
+    InternalData.prototype[GET] = function (property, receiver) {
+        var handler = this[PROXY_HANDLER];
+        validateProxyHanler(handler, 'get');
+        if (handler.get == UNDEFINED) {
+            return this[PROXY_TARGET][property];
+        }
+        if (typeof handler.get === 'function') {
+            return handler.get(this[PROXY_TARGET], property, receiver);
+        }
+        throwTypeError("Trap 'get' is not a function: " + handler.get);
+    };
 
-	/**
-	 * The Proxy constructor
-	 * @constructor
-	 * @param {Function} target
-	 * @param {Object} handler
-	 * @returns {Function}
-	 */
-	function Proxy(target, handler) {
-		if (this instanceof Proxy) {
-			return createProxy(target, handler);
-		} else {
-			throwTypeError('Constructor Proxy requires \'new\'');
-		}
-	}
 
-	/**
-	 * Create a revocable Proxy object
-	 * @param {Function} target
-	 * @param {Object} handler
-	 * @returns {{proxy, revoke}}
-	 */
-	Proxy.revocable = function (target, handler) {
-		var result = {};
-		result.proxy = createProxy(target, handler, result);
-		return result;
-	};
+    /**
+     * The implementation of internal method [[Set]]
+     * @param {string} property
+     * @param {any} value
+     * @param {object} receiver
+     */
+    InternalData.prototype[SET] = function (property, value, receiver) {
+        var handler = this[PROXY_HANDLER];
+        validateProxyHanler(handler, 'set');
+        if (handler.set == UNDEFINED) {
+            this[PROXY_TARGET][property] = value;
+        } else if (typeof handler.set === 'function') {
+            var result = handler.set(this[PROXY_TARGET], property, value, receiver);
+            if (!result) {
+                throwTypeError("Trap 'set' returned false for property '" + property + "'");
+            }
+        } else {
+            throwTypeError("Trap 'set' is not a function: " + handler.set);
+        }
+    };
 
-	context.Proxy = Proxy;
-}(
-	typeof window === 'object' ?
-		window :
-		typeof global === 'object' ? global : this // using `this` for web workers & supports Browserify / Webpack
-));
+
+    /**
+     * The implementation of internal method [[Call]]
+     * @param {object} thisArg
+     * @param {any[]} argList
+     * @returns {any}
+     */
+    InternalData.prototype[CALL] = function (thisArg, argList) {
+        var handler = this[PROXY_HANDLER];
+        validateProxyHanler(handler, 'apply');
+        if (handler.apply == UNDEFINED) {
+            return this[PROXY_TARGET].apply(thisArg, argList);
+        }
+        if (typeof handler.apply === 'function') {
+            return handler.apply(this[PROXY_TARGET], thisArg, argList);
+        }
+        throwTypeError("Trap 'apply' is not a function: " + handler.apply);
+    };
+
+
+    /**
+     * The implementation of internal method [[Construct]]
+     * @param {any[]} argList
+     * @param {object} newTarget
+     * @returns {object}
+     */
+    InternalData.prototype[CONSTRUCT] = function (argList, newTarget) {
+        var handler = this[PROXY_HANDLER];
+        validateProxyHanler(handler, 'construct');
+
+        var newObj;
+        if (handler.construct == UNDEFINED) {
+            newObj = evaluateNew(this[PROXY_TARGET], argList);
+        } else if (typeof handler.construct === 'function') {
+            newObj = handler.construct(this[PROXY_TARGET], argList, newTarget);
+        } else {
+            throwTypeError("Trap 'construct' is not a function: " + handler.construct);
+        }
+
+        if (isObject(newObj)) {
+            return newObj;
+        } else {
+            throwTypeError("Trap 'construct' returned non-object: " + newObj);
+        }
+    };
+
+
+    /**
+     * Validate the proxy hanler
+     * @param {object} handler
+     * @param {string} trap 
+     */
+    function validateProxyHanler(handler, trap) {
+        if (!handler) {
+            throwTypeError("Cannot perform '" + trap + "' on a proxy that has been revoked");
+        }
+    }
+
+
+    /**
+     * Call constructor with 'new'
+     * @param {function} F constructor
+     * @param {any[]} argList
+     * @returns {object}
+     */
+    function evaluateNew(F, argList) {
+        var params = [];
+        for (var i = 0, len = argList.length; i < len; ++i) {
+            params.push('args[' + i + ']');
+        }
+        var executor = new Function('Ctor', 'args', 'return new Ctor(' + params.join(', ') + ')');
+        return executor(F, argList);
+    }
+    
+
+    /**
+     * Throw a type error
+     * @param {string} message 
+     */
+    function throwTypeError(message) {
+        throw new TypeError(message);
+    }
+
+
+    /**
+     * Check if value is the language type of Object
+     * @param {any} value 
+     * @returns {boolean}
+     */
+    function isObject(value) {
+        return value 
+            ? typeof value === 'object' || typeof value === 'function' 
+            : false;
+    }
+
+
+    /**
+     * Check if key is an own property of object
+     * @param {object} obj 
+     * @param {string} key 
+     * @returns {boolean}
+     */
+    function hasOwnProperty(obj, key) {
+        return Object.prototype.hasOwnProperty.call(obj, key);
+    }
+
+
+    /**
+     * Hack `Object.getOwnPropertyNames`
+     */
+    var getOwnPropertyNames = Object.getOwnPropertyNames || function (obj) {
+        var names = [];
+        for (var key in obj) {
+            if (hasOwnProperty(obj, key)) {
+                names.push(key);
+
+            }
+        }
+        return names;
+    };
+
+
+    /**
+     * Hack `Object.setPrototypeOf`
+     */
+    var setPrototypeOf = Object.setPrototypeOf || function (obj, proto) {
+        obj.__proto__ = proto;
+        return obj;
+    };
+
+
+    /**
+     * Hack `Object.create`
+     */
+    var objectCreate = supportES5 ? Object.create : function (_, props) {
+        return defineProperties({}, props);
+    };
+
+
+    /**
+     * Hack `Object.assign`
+     */
+    var objectAssign = Object.assign || function (target, source) {
+        for (var key in source) {
+            if (hasOwnProperty(source, key)) {
+                target[key] = source[key];
+            }
+        }
+        return target;
+    };
+
+
+    /**
+     * Proxy function
+     * @param {InternalData} internal 
+     * @returns {function}
+     */
+    function proxyFunction(internal) {
+        var target = internal[PROXY_TARGET];
+
+        function P() {
+            return this instanceof P 
+                ? internal[CONSTRUCT](arguments, P)
+                : internal[CALL](this, arguments);
+        }
+        P.prototype = target.prototype; // `prototype` is not configurable
+
+        if (supportES5) {
+            var descMap = observeProto(internal);
+            var newProto = objectCreate(getPrototypeOf(target), descMap);
+            setPrototypeOf(P, newProto);
+
+            descMap = observeProperties(target, internal);
+            for (var key in descMap) {
+                if (hasOwnProperty(P, key)) delete descMap[key];
+            }
+            defineProperties(P, descMap);
+        } else {
+            objectAssign(P, target);
+        }
+        
+        return P;
+    }
+
+
+    /**
+     * Proxy array
+     * @param {InternalData} internal 
+     * @returns {object} array-like object
+     */
+    function proxyArray(internal) {
+        var target = internal[PROXY_TARGET];
+
+        var descMap, newProto;
+        if (supportES5) {
+            descMap = observeProto(internal);
+            // Fix: `concat` does not work correctly on array-like object
+            descMap.concat.get = function () {
+                var val = internal[GET]('concat', this);
+                return val === Array.prototype.concat
+                    ? val.bind(target)
+                    : val;
+            };
+            newProto = objectCreate(getPrototypeOf(target), descMap);
+        }
+
+        descMap = observeProperties(target, internal);
+        // Observe the change of `length`, and synchronize
+        // the properties of Proxy object to target array
+        descMap.length.set = function (value) {
+            var needSync = value > target.length;
+            internal[SET]('length', value, this);
+            if (needSync) syncArrayElement(this, internal);
+        };
+        
+        return objectCreate(newProto, descMap);
+    }
+
+
+    /**
+     * Proxy object
+     * @param {InternalData} internal 
+     * @returns {object}
+     */
+    function proxyObject(internal) {
+        var target = internal[PROXY_TARGET];
+        var descMap, newProto;
+        if (supportES5) {
+            descMap = observeProto(internal);
+            newProto = objectCreate(getPrototypeOf(target), descMap);
+        }
+
+        descMap = observeProperties(target, internal);
+        return objectCreate(newProto, descMap);
+    }
+
+
+    /**
+     * Observe [[Prototype]]
+     * @param {InternalData} internal 
+     * @returns {object} descriptors
+     */
+    function observeProto(internal) {
+        var descMap = {};
+        var proto = internal[PROXY_TARGET];
+        while (proto = getPrototypeOf(proto)) {
+            var props = observeProperties(proto, internal);
+            objectAssign(descMap, props);
+        }
+        return descMap;
+    }
+
+
+    /**
+     * Observe properties
+     * @param {object} obj
+     * @param {InternalData} internal 
+     * @returns {object} descriptors
+     */
+    function observeProperties(obj, internal) {
+        var names = getOwnPropertyNames(obj);
+        var descMap = {};
+        for (var i = names.length - 1; i >=0; --i) {
+            descMap[ names[i] ] = observeProperty(obj, names[i], internal);
+        }
+        return descMap;
+    }
+
+
+    /**
+     * Observe property
+     * @param {object} obj
+     * @param {string} prop
+     * @param {InternalData} internal 
+     * @returns {{get: function, set: function, enumerable: boolean, configurable: boolean}}
+     */
+    function observeProperty(obj, prop, internal) {
+        var desc = getOwnPropertyDescriptor(obj, prop);
+        return {
+            get: function () {
+                return internal[GET](prop, this);
+            },
+            set: function (value) {
+                internal[SET](prop, value, this);
+            },
+            enumerable: desc.enumerable,
+            configurable: desc.configurable
+        };
+    }
+
+
+    /**
+     * Sync array element from P to target
+     * @param {object} P
+     * @param {InternalData} internal 
+     */
+    function syncArrayElement (P, internal) {
+        var target = internal[PROXY_TARGET];
+        for (var key in P) {
+            if (!(key in target)) {
+                var desc = getOwnPropertyDescriptor(P, key);
+                defineProperty(target, key, desc);
+                desc = observeProperty(target, key, internal);
+                defineProperty(P, key, desc);
+            }
+        }
+    }
+
+    
+    return Proxy;
+}));
