@@ -48,7 +48,7 @@ let proxy = new Proxy({}, {});
 
 #### Testing
 1. Access `test/browser/index.html` with browser
-1. Tested in IE6, IE7, IE8
+1. Tested in IE6-8, IE11
 
 
 #### Contact Us

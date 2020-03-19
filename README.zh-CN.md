@@ -48,7 +48,7 @@ var proxy = new Proxy({}, {});
 
 #### 测试
 1. 使用浏览器访问 `test/browser/index.html`
-1. 已在IE6、IE7、IE8中进行测试
+1. 已在 IE6-8、IE11 中进行测试
 
 
 #### 联系
