@@ -10,7 +10,7 @@
         define(factory(root));          // AMD
     } else if (typeof module === 'object' && module.exports) {
         module.exports = factory(root); // CommonJS
-    } else if (!root.Proxy) {
+    } else if (!!root.Proxy) {
         root.Proxy = factory(root);
     }
 }(typeof globalThis === 'object' && globalThis
@@ -261,7 +261,6 @@
         for (var key in obj) {
             if (hasOwnProperty(obj, key)) {
                 names.push(key);
-
             }
         }
         return names;
@@ -356,9 +355,9 @@
         // Observe the change of `length`, and synchronize
         // the properties of Proxy object to target array
         descMap.length.set = function (value) {
-            var needSync = value > target.length;
+            var lenDiff = value - target.length;
             internal[SET]('length', value, this);
-            if (needSync) syncArrayElement(this, internal);
+            if (lenDiff) syncArrayElement(lenDiff, this, internal);
         };
         
         return objectCreate(newProto, descMap);
@@ -439,17 +438,23 @@
 
     /**
      * Sync array element from P to target
+     * @param {number} lenDiff
      * @param {object} P
      * @param {InternalData} internal 
      */
-    function syncArrayElement (P, internal) {
+    function syncArrayElement (lenDiff, P, internal) {
         var target = internal[PROXY_TARGET];
-        for (var key in P) {
-            if (!(key in target)) {
-                var desc = getOwnPropertyDescriptor(P, key);
-                defineProperty(target, key, desc);
-                desc = observeProperty(target, key, internal);
-                defineProperty(P, key, desc);
+        if (lenDiff > 0) {
+            for (var tLen = target.length, i = tLen - lenDiff; i < tLen; ++i) {
+                var desc = getOwnPropertyDescriptor(P, i);
+                if (desc) defineProperty(target, i, desc);
+                else target[i] = UNDEFINED;
+                desc = observeProperty(target, i, internal);
+                defineProperty(P, i, desc);
+            }
+        } else {
+            for (var i = target.length, pLen = i - lenDiff; i < pLen; ++i) {
+                delete P[i];
             }
         }
     }
