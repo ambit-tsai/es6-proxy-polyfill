@@ -46,7 +46,7 @@ var proxy = new Proxy({}, {});
 1. Trap 的支持情况:
 
 ||对象|函数|数组|
-|:-:|:-:|:-:|:-:|:-:|
+|:-:|:-:|:-:|:-:|
 |>=IE9|get, set|get, set, apply, construct|get, set|
 |<=IE8|get, set|apply, construct|-|
 

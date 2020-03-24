@@ -46,7 +46,7 @@ let proxy = new Proxy({}, {});
 1. The support of traps:
 
 ||Object|Function|Array|
-|:-:|:-:|:-:|:-:|:-:|
+|:-:|:-:|:-:|:-:|
 |>=IE9|get, set|get, set, apply, construct|get, set|
 |<=IE8|get, set|apply, construct|-|
 
