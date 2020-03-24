@@ -1,6 +1,6 @@
 /**
  * ES6 Proxy Polyfill
- * @version 2.0.0
+ * @version 2.0.1
  * @author Ambit Tsai <ambit_tsai@qq.com>
  * @license Apache-2.0
  * @see {@link https://github.com/ambit-tsai/es6-proxy-polyfill}
@@ -10,7 +10,7 @@
         define(factory(root));          // AMD
     } else if (typeof module === 'object' && module.exports) {
         module.exports = factory(root); // CommonJS
-    } else if (!!root.Proxy) {
+    } else if (!root.Proxy) {
         root.Proxy = factory(root);
     }
 }(typeof globalThis === 'object' && globalThis
