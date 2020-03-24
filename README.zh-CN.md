@@ -42,8 +42,13 @@ var proxy = new Proxy({}, {});
 
 #### 注意
 1. 对于**非数组**对象，想要代理的属性**必须在创建时就已存在**；
-1. 在 IE8 及以下，`Object.defineProperties` 与 `Object.getOwnPropertyDescriptor` 由 "<a href="https://github.com/ambit-tsai/object-defineproperty-ie" target="_blank">object-defineproperty-ie</a>" 库提供支持；
-1. 支持 `UMD`。
+1. 在 IE8 及以下，它依赖于 "<a href="https://github.com/ambit-tsai/object-defineproperty-ie" target="_blank">object-defineproperty-ie</a>" 库提供的 `Object.defineProperties` 与 `Object.getOwnPropertyDescriptor`；
+1. Trap 的支持情况:
+
+||对象|函数|数组|
+|:-:|:-:|:-:|:-:|:-:|
+|>=IE9|get, set|get, set, apply, construct|get, set|
+|<=IE8|get, set|apply, construct|-|
 
 
 #### 测试

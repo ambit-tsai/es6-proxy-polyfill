@@ -1,6 +1,6 @@
 {
   "name": "es6-proxy-polyfill",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Proxy polyfill based on ES3 supports IE8, Node.js, etc.",
   "main": "src/es6-proxy-polyfill.js",
   "scripts": {

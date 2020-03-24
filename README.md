@@ -7,7 +7,7 @@ This is a polyfill for ES6 `Proxy`, supports  **IE6+** , Node.js, etc.
 
 So far, it supports more features than the <a href="https://github.com/GoogleChrome/proxy-polyfill" target="_blank">proxy-polyfill</a> of GoogleChrome.
 
-The polyfill supports just a limited number of proxy 'traps':
+The polyfill supports just a limited number of proxy 'trap':
 * get
 * set
 * apply
@@ -42,8 +42,13 @@ let proxy = new Proxy({}, {});
 
 #### Notice
 1. For **non-array** object, the properties you want to proxy **must be known at creation time**;
-1. In IE8 or below, `Object.defineProperties` and `Object.getOwnPropertyDescriptor` are provided by library "<a href="https://github.com/ambit-tsai/object-defineproperty-ie" target="_blank">object-defineproperty-ie</a>";
-1. Support `UMD`.
+1. In IE8 or below, it depends on `Object.defineProperties` and `Object.getOwnPropertyDescriptor` provided by library "<a href="https://github.com/ambit-tsai/object-defineproperty-ie" target="_blank">object-defineproperty-ie</a>";
+1. The support of traps:
+
+||Object|Function|Array|
+|:-:|:-:|:-:|:-:|:-:|
+|>=IE9|get, set|get, set, apply, construct|get, set|
+|<=IE8|get, set|apply, construct|-|
 
 
 #### Testing
