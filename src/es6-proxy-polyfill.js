@@ -10,7 +10,7 @@
         define(factory(root));          // AMD
     } else if (typeof module === 'object' && module.exports) {
         module.exports = factory(root); // CommonJS
-    } else if (!root.Proxy) {
+    } else if (!!root.Proxy) {
         root.Proxy = factory(root);
     }
 }(typeof globalThis === 'object' && globalThis
@@ -76,7 +76,7 @@
             throwTypeError('Cannot create proxy with a non-object as target or handler');
         }
         var proxy;
-        var internal = new InternalData(target, handler);
+        var internal = new Internal(target, handler);
         if (typeof target === 'function') {
             proxy = proxyFunction(internal);
         } else if (target instanceof Array) {
@@ -100,7 +100,7 @@
      * @param {object} target 
      * @param {object} handler 
      */
-    function InternalData(target, handler) {
+    function Internal(target, handler) {
         this[PROXY_TARGET] = target;
         this[PROXY_HANDLER] = handler;
     }
@@ -112,7 +112,7 @@
      * @param {object} receiver
      * @returns {any}
      */
-    InternalData.prototype[GET] = function (property, receiver) {
+    Internal.prototype[GET] = function (property, receiver) {
         var handler = this[PROXY_HANDLER];
         validateProxyHanler(handler, 'get');
         if (handler.get == UNDEFINED) {
@@ -131,7 +131,7 @@
      * @param {any} value
      * @param {object} receiver
      */
-    InternalData.prototype[SET] = function (property, value, receiver) {
+    Internal.prototype[SET] = function (property, value, receiver) {
         var handler = this[PROXY_HANDLER];
         validateProxyHanler(handler, 'set');
         if (handler.set == UNDEFINED) {
@@ -153,7 +153,7 @@
      * @param {any[]} argList
      * @returns {any}
      */
-    InternalData.prototype[CALL] = function (thisArg, argList) {
+    Internal.prototype[CALL] = function (thisArg, argList) {
         var handler = this[PROXY_HANDLER];
         validateProxyHanler(handler, 'apply');
         if (handler.apply == UNDEFINED) {
@@ -172,7 +172,7 @@
      * @param {object} newTarget
      * @returns {object}
      */
-    InternalData.prototype[CONSTRUCT] = function (argList, newTarget) {
+    Internal.prototype[CONSTRUCT] = function (argList, newTarget) {
         var handler = this[PROXY_HANDLER];
         validateProxyHanler(handler, 'construct');
 
@@ -299,7 +299,7 @@
 
     /**
      * Proxy function
-     * @param {InternalData} internal 
+     * @param {Internal} internal 
      * @returns {function}
      */
     function proxyFunction(internal) {
@@ -332,7 +332,7 @@
 
     /**
      * Proxy array
-     * @param {InternalData} internal 
+     * @param {Internal} internal 
      * @returns {object} array-like object
      */
     function proxyArray(internal) {
@@ -366,7 +366,7 @@
 
     /**
      * Proxy object
-     * @param {InternalData} internal 
+     * @param {Internal} internal 
      * @returns {object}
      */
     function proxyObject(internal) {
@@ -384,7 +384,7 @@
 
     /**
      * Observe [[Prototype]]
-     * @param {InternalData} internal 
+     * @param {Internal} internal 
      * @returns {object} descriptors
      */
     function observeProto(internal) {
@@ -401,7 +401,7 @@
     /**
      * Observe properties
      * @param {object} obj
-     * @param {InternalData} internal 
+     * @param {Internal} internal 
      * @returns {object} descriptors
      */
     function observeProperties(obj, internal) {
@@ -418,7 +418,7 @@
      * Observe property
      * @param {object} obj
      * @param {string} prop
-     * @param {InternalData} internal 
+     * @param {Internal} internal 
      * @returns {{get: function, set: function, enumerable: boolean, configurable: boolean}}
      */
     function observeProperty(obj, prop, internal) {
@@ -440,7 +440,7 @@
      * Sync array element from P to target
      * @param {number} lenDiff
      * @param {object} P
-     * @param {InternalData} internal 
+     * @param {Internal} internal 
      */
     function syncArrayElement (lenDiff, P, internal) {
         var target = internal[PROXY_TARGET];
