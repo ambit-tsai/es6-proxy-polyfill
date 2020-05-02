@@ -68,7 +68,7 @@
                 internal[PROXY_TARGET] = UNDEFINED;
                 internal[PROXY_HANDLER] = UNDEFINED;
             }
-    };
+        };
     };
 
 
@@ -270,7 +270,11 @@
      * Hack `Object.setPrototypeOf`
      */
     var setPrototypeOf = Object.setPrototypeOf || function (obj, proto) {
-        obj.__proto__ = proto;
+        if (!obj.__proto__ && supportES5) {
+            defineProperty(obj, '__proto__', {value: proto});
+        } else {
+            obj.__proto__ = proto;
+        }
         return obj;
     };
 
