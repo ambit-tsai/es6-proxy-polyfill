@@ -10,7 +10,7 @@
         define(factory(root));          // AMD
     } else if (typeof module === 'object' && module.exports) {
         module.exports = factory(root); // CommonJS
-    } else if (!!root.Proxy) {
+    } else if (!root.Proxy) {
         root.Proxy = factory(root);
     }
 }(typeof globalThis === 'object' && globalThis
@@ -44,7 +44,7 @@
      */
     function Proxy(target, handler) {
         if (this instanceof Proxy) {
-            return createProxy(target, handler).proxy;
+            return createProxy(new Internal(target, handler));
         } else {
             throwTypeError("Constructor Proxy requires 'new'");
         }
@@ -61,22 +61,24 @@
         if (this instanceof Proxy.revocable) {
             throwTypeError("Proxy.revocable is not a constructor");
         }
-        return createProxy(target, handler);
+        var internal = new Internal(target, handler);
+        return {
+            proxy: createProxy(internal),
+            revoke: function () {
+                internal[PROXY_TARGET] = UNDEFINED;
+                internal[PROXY_HANDLER] = UNDEFINED;
+            }
+    };
     };
 
 
     /**
      * Create a Proxy object
-     * @param {object} target 
-     * @param {object} handler 
-     * @returns {{proxy: object, revoke: function}}
+     * @param {Internal} internal
+     * @returns {object}
      */
-    function createProxy(target, handler) {
-        if (!isObject(target) || !isObject(handler)) {
-            throwTypeError('Cannot create proxy with a non-object as target or handler');
-        }
+    function createProxy(internal) {
         var proxy;
-        var internal = new Internal(target, handler);
         if (typeof target === 'function') {
             proxy = proxyFunction(internal);
         } else if (target instanceof Array) {
@@ -84,23 +86,20 @@
         } else {
             proxy = proxyObject(internal);
         }
-        return {
-            proxy: proxy,
-            revoke: function () {
-                internal[PROXY_TARGET] = UNDEFINED;
-                internal[PROXY_HANDLER] = UNDEFINED;
-            }
-        };
+        return proxy;
     }
 
 
     /**
-     * The object to store internal data 
+     * Internal data 
      * @constructor
      * @param {object} target 
      * @param {object} handler 
      */
     function Internal(target, handler) {
+        if (!isObject(target) || !isObject(handler)) {
+            throwTypeError('Cannot create proxy with a non-object as target or handler');
+        }
         this[PROXY_TARGET] = target;
         this[PROXY_HANDLER] = handler;
     }
