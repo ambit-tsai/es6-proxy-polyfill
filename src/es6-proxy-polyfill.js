@@ -268,14 +268,26 @@
     /**
      * Hack `Object.setPrototypeOf`
      */
-    var setPrototypeOf = Object.setPrototypeOf || function (obj, proto) {
-        if (!obj.__proto__ && supportES5) {
-            defineProperty(obj, '__proto__', {value: proto});
-        } else {
+    var setPrototypeOf = Object.setPrototypeOf || 
+        Objecct.__proto__ &&  function (obj, proto) {
             obj.__proto__ = proto;
-        }
-        return obj;
-    };
+            return obj;
+        } || 
+        supportES5 && function (obj, proto) {
+            return defineProperty(obj, '__proto__', {value: proto});
+        } || 
+        window._isVbObject && function (obj, proto) {
+            if (window._isVbObject(obj)) {
+                window._getVbInternalOf(obj).__proto__ = proto;
+            } else {
+                obj.__proto__ = proto;
+            }
+            return obj;
+        } || 
+        function (obj, proto) {                
+            obj.__proto__ = proto;
+            return obj;
+        };
 
 
     /**
