@@ -13,8 +13,7 @@
     } else if (!root.Proxy) {
         root.Proxy = factory(root);
     }
-}(typeof globalThis === 'object' && globalThis
-|| typeof window === 'object' && window
+}(typeof window === 'object' && window
 || typeof global === 'object' && global
 || typeof self === 'object' && self
 || this, function (root) {
