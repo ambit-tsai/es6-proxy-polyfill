@@ -293,8 +293,10 @@
     /**
      * Hack `Object.create`
      */
-    var objectCreate = supportES5 ? Object.create : function (_, props) {
-        return defineProperties({}, props);
+    var objectCreate = supportES5 ? Object.create : function (proto, props) {
+        var obj = defineProperties({}, props);
+        window._getVbInternalOf(obj).__proto__ = proto;
+        return obj;
     };
 
 
