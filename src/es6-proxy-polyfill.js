@@ -25,6 +25,8 @@
     var SET = '[[Set]]';
     var CALL = '[[Call]]';
     var CONSTRUCT = '[[Construct]]';
+    var PROXY_FLAG = '__PROXY__';
+    var REVOKED_FLAG = 'REVOKED';
 
 
     var Object = root.Object;
@@ -32,7 +34,33 @@
     var defineProperties = Object.defineProperties;
     var getPrototypeOf = Object.getPrototypeOf;
     var getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
-    var supportES5 = defineProperties ? /\[native code\]/.test(defineProperties.toString()) : false;
+    var supportES5 = defineProperties ? isNativeFn(defineProperties) : false;
+
+
+    /**
+     * Return the prototype of proxy object
+     * @param {object} obj 
+     * @returns {object}
+     */
+    var getProxyProto = supportES5 ? (
+        Object.__proto__ ? getPrototypeOf : function (obj) {
+            return typeof obj === 'function'
+                ? obj.__proto__ || {}
+                : getPrototypeOf(obj);
+        }
+    ) : function (obj) {
+        return window._isVbObject(obj) && window._getVbInternalOf(obj).__proto__ || {};
+    };
+
+
+    /**
+     * Check if `value` is a pristine native function
+     * @param {any} value 
+     * @returns {boolean}
+     */
+    function isNativeFn(value) {
+        return typeof value === 'function' && /\[native code\]/.test(value.toString());
+    }
 
 
     /**
@@ -58,14 +86,18 @@
      */
     Proxy.revocable = function (target, handler) {
         if (this instanceof Proxy.revocable) {
-            throwTypeError("Proxy.revocable is not a constructor");
+            throwTypeError('Proxy.revocable is not a constructor');
         }
         var internal = new Internal(target, handler);
+        var proxy = createProxy(internal);
         return {
-            proxy: createProxy(internal),
+            proxy: proxy,
             revoke: function () {
                 internal[PROXY_TARGET] = UNDEFINED;
                 internal[PROXY_HANDLER] = UNDEFINED;
+                if (!supportES5) {
+                    getProxyProto(proxy)[PROXY_FLAG] = REVOKED_FLAG;
+                }
             }
         };
     };
@@ -77,7 +109,8 @@
      * @returns {object}
      */
     function createProxy(internal) {
-        var target = internal[PROXY_TARGET], proxy;
+        var target = internal[PROXY_TARGET];
+        var proxy;
         if (typeof target === 'function') {
             proxy = proxyFunction(internal);
         } else if (target instanceof Array) {
@@ -98,6 +131,9 @@
     function Internal(target, handler) {
         if (!isObject(target) || !isObject(handler)) {
             throwTypeError('Cannot create proxy with a non-object as target or handler');
+        }
+        if ((getProxyProto(target)[PROXY_FLAG] || getProxyProto(handler)[PROXY_FLAG]) === REVOKED_FLAG) {
+            throwTypeError('Cannot create proxy with a revoked proxy as target or handler');
         }
         this[PROXY_TARGET] = target;
         this[PROXY_HANDLER] = handler;
@@ -266,16 +302,19 @@
 
 
     /**
-     * Hack `Object.setPrototypeOf`
+     * Set the prototype of function
+     * @param {function} fn 
+     * @param {object} proto 
+     * @returns {object}
      */
-    var setPrototypeOf = Object.setPrototypeOf || (
-        !Object.__proto__ && supportES5
-            ? function (obj, proto) {
-                return defineProperty(obj, '__proto__', {value: proto});
+    var setFuncProto = isNativeFn(Object.setPrototypeOf) ? Object.setPrototypeOf : (
+        Object.__proto__
+            ? function (fn, proto) {
+                fn.__proto__ = proto;
+                return fn;
             }
-            : function (obj, proto) {                
-                obj.__proto__ = proto;
-                return obj;
+            : function (fn, proto) {
+                return defineProperty(fn, '__proto__', {value: proto});
             }
     );
 
@@ -285,7 +324,11 @@
      */
     var objectCreate = supportES5 ? Object.create : function (_, props) {
         var obj = defineProperties({}, props);
-        window._getVbInternalOf(obj).__proto__ = {__PROXY__: UNDEFINED};
+        if (window._isVbObject(obj)) {
+            var proto = {};
+            proto[PROXY_FLAG] = UNDEFINED;
+            window._getVbInternalOf(obj).__proto__ = proto;
+        }
         return obj;
     };
 
@@ -321,7 +364,7 @@
         if (supportES5) {
             var descMap = observeProto(internal);
             var newProto = objectCreate(getPrototypeOf(target), descMap);
-            setPrototypeOf(P, newProto);
+            setFuncProto(P, newProto);
 
             descMap = observeProperties(target, internal);
             for (var key in descMap) {
@@ -394,14 +437,17 @@
      * @returns {object} descriptors
      */
     function observeProto(internal) {
-        var descMap = {
-            __PROXY__: {value: UNDEFINED}
-        };
+        var descMap = {};
         var proto = internal[PROXY_TARGET];
         while (proto = getPrototypeOf(proto)) {
             var props = observeProperties(proto, internal);
             objectAssign(descMap, props);
         }
+        descMap[PROXY_FLAG] = {
+            get: function () {
+                return internal[PROXY_TARGET] ? UNDEFINED : REVOKED_FLAG;
+            }
+        };
         return descMap;
     }
 
