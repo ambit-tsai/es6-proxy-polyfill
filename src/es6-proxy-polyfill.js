@@ -25,6 +25,7 @@
     var SET = '[[Set]]';
     var CALL = '[[Call]]';
     var CONSTRUCT = '[[Construct]]';
+    var PROTOTYPE = '__proto__';
     var PROXY_FLAG = '__PROXY__';
     var REVOKED_FLAG = 'REVOKED';
 
@@ -43,13 +44,13 @@
      * @returns {object}
      */
     var getProxyProto = supportES5 ? (
-        Object.__proto__ ? getPrototypeOf : function (obj) {
+        Object[PROTOTYPE] ? getPrototypeOf : function (obj) {
             return typeof obj === 'function'
-                ? obj.__proto__ || {}
+                ? obj[PROTOTYPE] || {}
                 : getPrototypeOf(obj);
         }
     ) : function (obj) {
-        return window._isVbObject(obj) && window._getVbInternalOf(obj).__proto__ || {};
+        return root._isVbObject(obj) && root._getVbInternalOf(obj)[PROTOTYPE] || {};
     };
 
 
@@ -308,13 +309,13 @@
      * @returns {object}
      */
     var setFuncProto = isNativeFn(Object.setPrototypeOf) ? Object.setPrototypeOf : (
-        Object.__proto__
+        Object[PROTOTYPE]
             ? function (fn, proto) {
-                fn.__proto__ = proto;
+                fn[PROTOTYPE] = proto;
                 return fn;
             }
             : function (fn, proto) {
-                return defineProperty(fn, '__proto__', {value: proto});
+                return defineProperty(fn, PROTOTYPE, {value: proto});
             }
     );
 
@@ -324,10 +325,10 @@
      */
     var objectCreate = supportES5 ? Object.create : function (_, props) {
         var obj = defineProperties({}, props);
-        if (window._isVbObject(obj)) {
+        if (root._isVbObject(obj)) {
             var proto = {};
             proto[PROXY_FLAG] = UNDEFINED;
-            window._getVbInternalOf(obj).__proto__ = proto;
+            root._getVbInternalOf(obj)[PROTOTYPE] = proto;
         }
         return obj;
     };
