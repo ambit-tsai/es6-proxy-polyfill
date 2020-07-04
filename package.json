@@ -1,10 +1,13 @@
 {
   "name": "es6-proxy-polyfill",
-  "version": "2.0.1",
+  "version": "3.0.0",
   "description": "Proxy polyfill based on ES3 supports IE8, Node.js, etc.",
   "main": "src/es6-proxy-polyfill.js",
   "scripts": {
-    "build": "uglifyjs src/es6-proxy-polyfill.js -c -m --ie8 --comments -o dist/es6-proxy-polyfill.js"
+    "build": "uglifyjs src/es6-proxy-polyfill.js -c -m --ie8 --comments -o dist/es6-proxy-polyfill.js",
+    "dev": "rollup -w -c scripts/rollup.dev.js",
+    "prod": "rollup -c scripts/rollup.min.js&& rollup -c scripts/rollup.esm.js",
+    "test": "rollup -c scripts/rollup.min.js"
   },
   "keywords": [
     "proxy",
@@ -20,6 +23,10 @@
     "url": "git+https://github.com/ambit-tsai/es6-proxy-polyfill.git"
   },
   "devDependencies": {
-    "uglify-js": "^3.4.8"
+    "@babel/core": "^7.10.4",
+    "@babel/preset-env": "^7.10.4",
+    "rollup": "^2.18.2",
+    "rollup-plugin-babel": "^4.4.0",
+    "rollup-plugin-terser": "^6.1.0"
   }
 }
