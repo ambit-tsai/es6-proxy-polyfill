@@ -1,19 +1,16 @@
 import Internal from './Internal';
 import {
-    createProxy,
-} from './functions';
+    UNDEFINED,
+} from './constants';
 import {
     throwTypeError,
 } from './tools';
-import {
-    PROXY_TARGET,
-    PROXY_HANDLER,
-    UNDEFINED,
-} from './constants';
+import './intercept';
 
 
 
 export default class Proxy {
+    
     /**
      * @constructor
      * @param {object} target
@@ -21,11 +18,12 @@ export default class Proxy {
      */
     constructor(target, handler) {
         if (this instanceof Proxy) {
-            return createProxy(new Internal(target, handler));
+            return Internal.ProxyCreate(target, handler).proxy;
         } else {
             throwTypeError("Constructor Proxy requires 'new'");
         }
     }
+
 
     /**
      * Create a revocable Proxy object
@@ -37,13 +35,12 @@ export default class Proxy {
         if (this instanceof Proxy.revocable) {
             throwTypeError('Proxy.revocable is not a constructor');
         }
-        const internal = new Internal(target, handler);
-        const proxy = createProxy(internal);
+        const {proxy, internal} = Internal.ProxyCreate(target, handler);
         return {
             proxy,
             revoke() {
-                internal[PROXY_TARGET] = UNDEFINED;
-                internal[PROXY_HANDLER] = UNDEFINED;
+                internal.ProxyTarget = UNDEFINED;
+                internal.ProxyHandler = UNDEFINED;
             },
         };
     }

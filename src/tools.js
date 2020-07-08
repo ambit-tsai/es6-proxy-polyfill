@@ -27,12 +27,12 @@ export function throwTypeError(message) {
 
 /**
  * Validate the proxy handler
- * @param {string} trap 
  * @param {object} handler
+ * @param {string} trap 
  */
-export function validateProxyHanler(trap, handler) {
+export function validateProxyHanler(handler, trap) {
     if (!handler) {
-        throwTypeError(`Cannot perform '${trap}' on a proxy that has been revoked`);
+        throwTypeError(`Cannot perform '${trap}' on a revoked proxy`);
     }
 }
 
@@ -40,10 +40,9 @@ export function validateProxyHanler(trap, handler) {
 /**
  * Throw an Error when trap is not a function
  * @param {string} trap 
- * @param {any} value
  */
-export function throwTrapNotFunction(trap, value) {
-    throwTypeError(`Trap '${trap}' is not a function: ${value}`);
+export function throwTrapNotFunction(trap) {
+    throwTypeError(`[${trap}] trap must be undefined, null, or callable`);
 }
 
 
@@ -89,6 +88,8 @@ export const {
     defineProperties,
     getOwnPropertyDescriptor,
     getPrototypeOf,
+    isExtensible,
+    preventExtensions,
 } = Object;
 
 
@@ -143,14 +144,35 @@ export const setPrototypeOf = Object.setPrototypeOf || function (fn, proto) {
 
 
 /**
+ * Get the [[Prototype]] of a Proxy object
+ * @param {Proxy} obj 
+ * @returns {object}
+ */
+export function getProxyProto(obj) {
+    return typeof obj === 'function' && !canSetPrototype
+        ? obj.__proto__
+        : getPrototypeOf(obj);
+}
+
+
+/**
+ * Check if `obj` is a Proxy object
+ * @param {object} obj 
+ * @returns {boolean}
+ */
+export function isProxyObject(obj) {
+    const proto = getProxyProto(obj);
+    return proto ? PROXY_FLAG in proto : false;
+}
+
+
+/**
  * Check if `obj` is a revoked proxy
  * @param {object} obj 
  * @returns {boolean}
  */
 export function isRevokedProxy(obj) {
-    const proto = typeof obj === 'function' && !canSetPrototype
-        ? obj.__proto__
-        : getPrototypeOf(obj);
+    const proto = getProxyProto(obj);
     return proto 
         ? PROXY_FLAG in proto && proto[PROXY_FLAG] === REVOKED_FLAG
         : false;

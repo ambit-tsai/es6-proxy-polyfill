@@ -30,6 +30,18 @@ describe('Throw when handler is not an object', function () {
 });
 
 
+describe('[get] trap is undefined or null', function () {
+    var proxy = new Proxy({a: 1}, {
+        get: undefined
+    });
+    expect(proxy.a).to.be(1);
+
+    var proxy = new Proxy({a: 1}, {
+        get: null
+    });
+    expect(proxy.a).to.be(1);
+});
+
 
 describe('[get] trap is a function', function () {
     var obj = {a: 1};
@@ -44,23 +56,7 @@ describe('[get] trap is a function', function () {
 });
 
 
-describe('[get] trap is undefined', function () {
-    var proxy = new Proxy({a: 1}, {
-        get: undefined
-    });
-    expect(proxy.a).to.be(1);
-});
-
-
-describe('[get] trap is null', function () {
-    var proxy = new Proxy({a: 1}, {
-        get: null
-    });
-    expect(proxy.a).to.be(1);
-});
-
-
-describe('[get] throw when trap s not a function', function () {
+describe('[get] throw when trap is not a function', function () {
     expect(function () {
         var proxy = new Proxy({a: 1}, {
             get: 2
@@ -71,6 +67,54 @@ describe('[get] throw when trap s not a function', function () {
     });
 });
 
+
+describe('[get] proxy must report the same value for the non-writable, non-configurable property', function () {
+    expect(function () {
+        var obj = Object.defineProperty && Object.defineProperty({}, 'a', {
+            value: 1
+        }) || {};
+        var proxy = new Proxy(obj, {
+            get: function () {
+                return 2;
+            }
+        });
+        proxy.a;
+    }).to.throwException(function (ex) {
+        expect(ex).to.be.a(TypeError);
+    });
+});
+
+
+describe('[get] proxy must report undefined for a non-configurable accessor property without a getter', function () {
+    expect(function () {
+        var obj = Object.defineProperty && Object.defineProperty({}, 'a', {
+            set: function () {}
+        }) || {};
+        var proxy = new Proxy(obj, {
+            get: function () {
+                return 2;
+            }
+        });
+        proxy.a;
+    }).to.throwException(function (ex) {
+        expect(ex).to.be.a(TypeError);
+    });
+});
+
+
+describe('[set] trap is undefined or null', function () {
+    var proxy = new Proxy({a: 1}, {
+        set: undefined
+    });
+    proxy.a = 2;
+    expect(proxy.a).to.be(2);
+    
+    var proxy = new Proxy({a: 1}, {
+        set: undefined
+    });
+    proxy.a = 2;
+    expect(proxy.a).to.be(2);
+});
 
 
 describe('[set] trap is a function', function () {
@@ -88,24 +132,6 @@ describe('[set] trap is a function', function () {
 });
 
 
-describe('[set] trap is undefined', function () {
-    var proxy = new Proxy({a: 1}, {
-        set: undefined
-    });
-    proxy.a = 2;
-    expect(proxy.a).to.be(2);
-});
-
-
-describe('[set] trap is null', function () {
-    var proxy = new Proxy({a: 1}, {
-        set: null
-    });
-    proxy.a = 2;
-    expect(proxy.a).to.be(2);
-});
-
-
 describe('[set] throw when trap is not a function', function () {
     expect(function () {
         var proxy = new Proxy({a: 1}, {
@@ -118,12 +144,14 @@ describe('[set] throw when trap is not a function', function () {
 });
 
 
-describe('[set] throw when trap return false in strict mode', function () {
+describe("[set] proxy can't successfully set a non-writable, non-configurable property", function () {
     expect(function () {
-        'use strict'
-        var proxy = new Proxy({a: 1}, {
+        var obj = Object.defineProperty && Object.defineProperty({}, 'a', {
+            value: 1
+        }) || {};
+        var proxy = new Proxy(obj, {
             set: function () {
-                return false;
+                return true;
             }
         });
         proxy.a = 2;
@@ -132,6 +160,55 @@ describe('[set] throw when trap return false in strict mode', function () {
     });
 });
 
+
+describe("[set] proxy can't successfully set an accessor property without a setter", function () {
+    expect(function () {
+        var obj = Object.defineProperty && Object.defineProperty({}, 'a', {
+            get: function () {}
+        }) || {};
+        var proxy = new Proxy(obj, {
+            set: function () {
+                return true;
+            }
+        });
+        proxy.a = 2;
+    }).to.throwException(function (ex) {
+        expect(ex).to.be.a(TypeError);
+    });
+});
+
+
+// describe('[set] throw when trap return false in strict mode', function () {
+//     expect(function () {
+//         'use strict'
+//         var proxy = new Proxy({a: 1}, {
+//             set: function () {
+//                 return false;
+//             }
+//         });
+//         proxy.a = 2;
+//     }).to.throwException(function (ex) {
+//         expect(ex).to.be.a(TypeError);
+//     });
+// });
+
+
+
+describe('[apply] trap is undefined or null', function () {
+    function fn() {
+        return 1;
+    }
+
+    var proxy = new Proxy(fn, {
+        apply: undefined
+    });
+    expect(proxy()).to.be(1);
+
+    var proxy = new Proxy(fn, {
+        apply: null
+    });
+    expect(proxy()).to.be(1);
+});
 
 
 describe('[apply] trap is a function', function () {
@@ -147,28 +224,6 @@ describe('[apply] trap is a function', function () {
         }
     });
     expect(proxy.call(ctx, 2)).to.be(3);
-});
-
-
-describe('[apply] trap is undefined', function () {
-    function fn() {
-        return 1;
-    }
-    var proxy = new Proxy(fn, {
-        apply: undefined
-    });
-    expect(proxy()).to.be(1);
-});
-
-
-describe('[apply] trap is null', function () {
-    function fn() {
-        return 1;
-    }
-    var proxy = new Proxy(fn, {
-        apply: null
-    });
-    expect(proxy()).to.be(1);
 });
 
 
@@ -197,6 +252,23 @@ describe('[apply] throw when calling trap with non-function target', function ()
 
 
 
+describe('[construct] trap is undefined or null', function () {
+    function Test(a) {
+        this.a = a;
+    }
+
+    var proxy = new Proxy(Test, {
+        construct: undefined
+    });
+    expect(new proxy(1).a).to.be(1);
+    
+    var proxy = new Proxy(Test, {
+        construct: null
+    });
+    expect(new proxy(1).a).to.be(1);
+});
+
+
 describe('[construct] trap is a function', function () {
     function Test(a) {
         this.a = a;
@@ -212,33 +284,11 @@ describe('[construct] trap is a function', function () {
 });
 
 
-describe('[construct] trap is undefined', function () {
-    function Test(a) {
-        this.a = a;
-    }
-    var proxy = new Proxy(Test, {
-        construct: undefined
-    });
-    expect(new proxy(1).a).to.be(1);
-});
-
-
-describe('[construct] trap is null', function () {
-    function Test(a) {
-        this.a = a;
-    }
-    var proxy = new Proxy(Test, {
-        construct: null
-    });
-    expect(new proxy(1).a).to.be(1);
-});
-
-
 describe('[construct] throw when trap is not a function', function () {
-    function Test(a) {
-        this.a = a;
-    }
     expect(function () {
+        function Test(a) {
+            this.a = a;
+        }
         var proxy = new Proxy(Test, {
             construct: 1
         });
@@ -249,11 +299,11 @@ describe('[construct] throw when trap is not a function', function () {
 });
 
 
-describe('[construct] throw when trap does not return an object', function () {
-    function Test(a) {
-        this.a = a;
-    }
+describe('[construct] trap returned non-object', function () {
     expect(function () {
+        function Test(a) {
+            this.a = a;
+        }
         var proxy = new Proxy(Test, {
             construct: function () {
                 return 1;
@@ -278,6 +328,264 @@ describe('[construct] throw when calling trap with non-constructor target', func
         expect(ex).to.be.a(TypeError);
     });
 });
+
+
+
+describe('[isExtensible] trap is undefined or null', function () {
+    var proxy = new Proxy({}, {
+        isExtensible: undefined
+    });
+    var result = Object.isExtensible && Object.isExtensible(proxy);
+    expect(result).to.be(true);
+
+    var proxy = new Proxy({}, {
+        isExtensible: null
+    });
+    var result = Object.isExtensible && Object.isExtensible(proxy);
+    expect(result).to.be(true);
+});
+
+describe('[isExtensible] trap is a function', function () {
+    var obj = {};
+    var proxy = new Proxy(obj, {
+        isExtensible: function (target) {
+            return target === obj ? true : false;
+        }
+    });
+    var result = Object.isExtensible && Object.isExtensible(proxy);
+    expect(result).to.be(true);
+});
+
+
+describe('[isExtensible] throw when trap is not a function', function () {
+    expect(function () {
+        var proxy = new Proxy({}, {
+            isExtensible: 1
+        });
+        Object.isExtensible && Object.isExtensible(proxy);
+    }).to.throwException(function (ex) {
+        expect(ex).to.be.a(TypeError);
+    });
+});
+
+
+describe('[isExtensible] proxy must report same extensiblitity as target', function () {
+    expect(function () {
+        var proxy = new Proxy({}, {
+            isExtensible: function () {
+                return false;
+            }
+        });
+        Object.isExtensible && Object.isExtensible(proxy);
+    }).to.throwException(function (ex) {
+        expect(ex).to.be.a(TypeError);
+    });
+});
+
+
+
+describe('[preventExtensions] trap is undefined or null', function () {
+    var proxy = new Proxy({}, {
+        preventExtensions: undefined
+    });
+    var result = Object.preventExtensions && Object.preventExtensions(proxy);
+    expect(result).to.be(proxy);
+    
+    var proxy = new Proxy({}, {
+        preventExtensions: null
+    });
+    var result = Object.preventExtensions && Object.preventExtensions(proxy);
+    expect(result).to.be(proxy);
+});
+
+
+describe('[preventExtensions] trap is a function', function () {
+    var obj = {};
+    var proxy = new Proxy(obj, {
+        preventExtensions: function (target) {
+            if (target === obj) {
+                Object.preventExtensions && Object.preventExtensions(target);
+                return true;
+            }
+        }
+    });
+    var result = Object.preventExtensions && Object.preventExtensions(proxy);
+    expect(result).to.be(proxy);
+});
+
+
+describe('[preventExtensions] throw when trap is not a function', function () {
+    expect(function () {
+        var proxy = new Proxy({}, {
+            preventExtensions: 1
+        });
+        Object.preventExtensions && Object.preventExtensions(proxy);
+    }).to.throwException(function (ex) {
+        expect(ex).to.be.a(TypeError);
+    });
+});
+
+
+describe("[preventExtensions] proxy can't report an extensible object as non-extensible", function () {
+    expect(function () {
+        var proxy = new Proxy({}, {
+            preventExtensions: function () {
+                return true;
+            }
+        });
+        Object.preventExtensions && Object.preventExtensions(proxy);
+    }).to.throwException(function (ex) {
+        expect(ex).to.be.a(TypeError);
+    });
+});
+
+
+describe('[preventExtensions] trap returned false', function () {
+    expect(function () {
+        var proxy = new Proxy({}, {
+            preventExtensions: function () {
+                return false;
+            }
+        });
+        Object.preventExtensions && Object.preventExtensions(proxy);
+    }).to.throwException(function (ex) {
+        expect(ex).to.be.a(TypeError);
+    });
+});
+
+
+
+describe('[getPrototypeOf] trap is undefined or null', function () {
+    var proxy = new Proxy({}, {
+        getPrototypeOf: undefined
+    });
+    var proto = Object.getPrototypeOf && Object.getPrototypeOf(proxy) || {};
+    expect(proto).to.be(Object.prototype);
+
+    var proxy = new Proxy({}, {
+        getPrototypeOf: null
+    });
+    var proto = Object.getPrototypeOf && Object.getPrototypeOf(proxy) || {};
+    expect(proto).to.be(Object.prototype);
+});
+
+
+describe('[getPrototypeOf] trap is a function', function () {
+    var obj = {};
+    var proxy = new Proxy(obj, {
+        getPrototypeOf: function (target) {
+            return target === obj ? {a: 1} : null;
+        }
+    });
+    var proto = Object.getPrototypeOf && Object.getPrototypeOf(proxy) || {};
+    expect(proto.a).to.be(1);
+});
+
+
+describe('[getPrototypeOf] throw when trap is not a function', function () {
+    expect(function () {
+        var proxy = new Proxy({}, {
+            getPrototypeOf: 1
+        });
+        Object.getPrototypeOf && Object.getPrototypeOf(proxy);
+    }).to.throwException(function (ex) {
+        expect(ex).to.be.a(TypeError);
+    });
+});
+
+
+describe('[getPrototypeOf] throw when returning neither object nor null', function () {
+    expect(function () {
+        var proxy = new Proxy({}, {
+            getPrototypeOf: function () {
+                return undefined;
+            }
+        });
+        Object.getPrototypeOf && Object.getPrototypeOf(proxy);
+    }).to.throwException(function (ex) {
+        expect(ex).to.be.a(TypeError);
+    });
+});
+
+
+describe('[getPrototypeOf] proxy target is non-extensible but the trap did not return its actual prototype', function () {
+    expect(function () {
+        var obj = {};
+        Object.preventExtensions && Object.preventExtensions(obj);
+        var proxy = new Proxy(obj, {
+            getPrototypeOf: function () {
+                return {};
+            }
+        });
+        Object.getPrototypeOf && Object.getPrototypeOf(proxy);
+    }).to.throwException(function (ex) {
+        expect(ex).to.be.a(TypeError);
+    });
+});
+
+
+
+describe('[setPrototypeOf] trap is undefined or null', function () {
+    var obj = {};
+    var proxy = new Proxy(obj, {
+        setPrototypeOf: undefined
+    });
+    Object.setPrototypeOf && Object.setPrototypeOf(proxy, {a: 1});
+    expect(obj.a).to.be(1);
+
+    var obj = {};
+    var proxy = new Proxy(obj, {
+        setPrototypeOf: null
+    });
+    Object.setPrototypeOf && Object.setPrototypeOf(proxy, {a: 1});
+    expect(obj.a).to.be(1);
+});
+
+
+describe('[setPrototypeOf] trap is a function', function () {
+    var obj = {};
+    var proxy = new Proxy(obj, {
+        setPrototypeOf: function (target, prototype) {
+            if (target === obj) {
+                prototype.a = 2;
+                Object.setPrototypeOf && Object.setPrototypeOf(target, prototype);
+                return true;
+            }
+            return false;
+        }
+    });
+    Object.setPrototypeOf && Object.setPrototypeOf(proxy, {a: 1});
+    expect(obj.a).to.be(2);
+});
+
+
+describe('[setPrototypeOf] throw when trap is not a function', function () {
+    expect(function () {
+        var proxy = new Proxy({}, {
+            setPrototypeOf: 1
+        });
+        Object.setPrototypeOf && Object.setPrototypeOf(proxy);
+    }).to.throwException(function (ex) {
+        expect(ex).to.be.a(TypeError);
+    });
+});
+
+
+describe('[setPrototypeOf] trap returned true for setting a new prototype on the non-extensible', function () {
+    expect(function () {
+        var obj = {};
+        Object.preventExtensions && Object.preventExtensions(obj);
+        var proxy = new Proxy(obj, {
+            setPrototypeOf: function () {
+                return true;
+            }
+        });
+        Object.setPrototypeOf && Object.setPrototypeOf(proxy, {});
+    }).to.throwException(function (ex) {
+        expect(ex).to.be.a(TypeError);
+    });
+});
+
 
 
 describe('[revocable] call `Proxy.revocable` as a function', function () {
