@@ -5,7 +5,7 @@
   "main": "src/es6-proxy-polyfill.js",
   "scripts": {
     "dev": "rollup -c scripts/rollup.dev.js",
-    "prod": "rollup -c scripts/rollup.min.js&& rollup -c scripts/rollup.esm.js"
+    "prod": "rollup -c scripts/rollup.min.js"
   },
   "keywords": [
     "proxy",

@@ -1,4 +1,5 @@
 import {
+    Object,
     PROXY_FLAG,
     REVOKED_FLAG,
 } from './constants';
@@ -78,7 +79,7 @@ export function isNativeFn(value) {
  * @param {string} key 
  * @returns {boolean}
  */
-function hasOwnProperty(obj, key) {
+export function hasOwnProperty(obj, key) {
     return Object.prototype.hasOwnProperty.call(obj, key);
 }
 
@@ -176,4 +177,91 @@ export function isRevokedProxy(obj) {
     return proto 
         ? PROXY_FLAG in proto && proto[PROXY_FLAG] === REVOKED_FLAG
         : false;
+}
+
+
+/**
+ * Convert to standard descriptor
+ * @param {object} obj
+ * @returns {object} descriptor
+ */
+export function toPropertyDescriptor(obj) {
+    const temp = defineProperty({}, 'a', obj);
+    return getOwnPropertyDescriptor(temp, 'a');
+}
+
+
+/**
+ * Check if descriptor is compatible
+ * @param {boolean} extensible 
+ * @param {object} desc 
+ * @param {object} current 
+ * @returns {boolean}
+ */
+export function isCompatiblePropertyDescriptor(extensible, desc, current) {
+    const obj = defineProperty({}, 'b', current);
+    if (!extensible) preventExtensions(obj);
+    try {
+        defineProperty(obj, 'b', desc);
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
+
+/**
+ * 
+ * @param {object} desc 
+ * @returns {object}
+ */
+export function fromPropertyDescriptor(desc) {
+    if (!desc) return;
+    const obj = {};
+    if ('value' in desc) obj.value = desc.value;
+    if ('writable' in desc) obj.writable = !!desc.writable;
+    if ('get' in desc) obj.get = desc.get;
+    if ('set' in desc) obj.set = desc.set;
+    if ('enumerable' in desc) obj.enumerable = !!desc.enumerable;
+    if ('configurable' in desc) obj.configurable = !!desc.configurable;
+    return obj;
+}
+
+
+/**
+ * 
+ * @param {object} obj 
+ * @returns {object[]}
+ */
+export function createListFromArrayLike (obj) {
+    let len = Number(obj.length);
+    len = len > 0 ? len : 0;
+    const list = [];
+    for (let i = 0; i < len; ++i) {
+        if (typeof obj[i] === 'string') {
+            list.push(obj[i]);
+        } else {
+            throwTypeError('');
+        }
+    }
+    return list;
+}
+
+
+/**
+ * 
+ * @param {string[]} arr 
+ * @returns {boolean}
+ */
+export function containDuplicateEntry(arr) {
+    const entryMap = {};
+    for (let i = arr.length - 1; i >= 0; --i) {
+        const entry = arr[i];
+        if (entryMap[entry]) {
+            return true;
+        } else {
+            entryMap[entry] = 1;
+        }
+    }
+    return false;
 }

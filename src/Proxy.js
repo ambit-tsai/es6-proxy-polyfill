@@ -5,7 +5,6 @@ import {
 import {
     throwTypeError,
 } from './tools';
-import './intercept';
 
 
 

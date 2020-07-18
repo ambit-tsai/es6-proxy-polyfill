@@ -4,13 +4,14 @@ import {terser} from "rollup-plugin-terser";
 
 
 export default {
-    input: 'src/Proxy.js',
+    input: 'src/index.js',
     output: {
         file: 'test/browser/proxy-polyfill.js',
-        format: 'umd',
-        name: 'Proxy',
+        format: 'iife',
         banner,
+        strict: false,
     },
+    context: 'this',
     plugins: [
         babel({
             presets: [

@@ -8,9 +8,12 @@ import {
 } from './functions';
 import {
     evaluateNew,
+    fromPropertyDescriptor,
     supportES5,
+    isCompatiblePropertyDescriptor,
     isObject,
     isRevokedProxy,
+    toPropertyDescriptor,
     throwTrapNotFunction,
     throwTypeError,
     validateProxyHanler,
@@ -19,6 +22,10 @@ import {
     getPrototypeOf,
     setPrototypeOf,
     getOwnPropertyDescriptor,
+    defineProperty,
+    getOwnPropertyNames,
+    createListFromArrayLike,
+    containDuplicateEntry,
 } from './tools';
 
 
@@ -158,7 +165,7 @@ export default class Internal {
         validateProxyHanler(ProxyHandler, trap);
 
         if (ProxyHandler[trap] == UNDEFINED) {
-            return ProxyTarget[trap](thisArg, argList);
+            return ProxyTarget(thisArg, argList);
         }
         if (typeof ProxyHandler[trap] !== 'function') {
             throwTrapNotFunction(trap);
@@ -180,7 +187,8 @@ export default class Internal {
         validateProxyHanler(ProxyHandler, trap);
 
         if (ProxyHandler[trap] == UNDEFINED) {
-            return evaluateNew(ProxyTarget, argList);
+            // return evaluateNew(ProxyTarget, argList);
+            return new ProxyTarget(...argList);
         }
         if (typeof ProxyHandler[trap] !== 'function') {
             throwTrapNotFunction(trap);
@@ -231,7 +239,8 @@ export default class Internal {
         validateProxyHanler(ProxyHandler, trap);
 
         if (ProxyHandler[trap] == UNDEFINED) {
-            return preventExtensions(ProxyTarget);
+            preventExtensions(ProxyTarget);
+            return true;
         }
         if (typeof ProxyHandler[trap] !== 'function') {
             throwTrapNotFunction(trap);
@@ -292,7 +301,8 @@ export default class Internal {
         validateProxyHanler(ProxyHandler, trap);
 
         if (ProxyHandler[trap] == UNDEFINED) {
-            return setPrototypeOf(ProxyTarget, prototype);
+            setPrototypeOf(ProxyTarget, prototype);
+            return true;
         }
         if (typeof ProxyHandler[trap] !== 'function') {
             throwTrapNotFunction(trap);
@@ -315,7 +325,7 @@ export default class Internal {
     /**
      * [[GetOwnProperty]]
      * @param {string} property
-     * @returns {object}
+     * @returns {object} descriptor
      */
     GetOwnProperty(property) {
         const trap = 'getOwnPropertyDescriptor';
@@ -325,39 +335,212 @@ export default class Internal {
         if (ProxyHandler[trap] == UNDEFINED) {
             return getOwnPropertyDescriptor(ProxyTarget, property);
         }
-        if (typeof ProxyHandler[trap] === 'function') {
-            const trapResultObj = ProxyHandler[trap](ProxyTarget, property);
-            if (!(isObject(trapResultObj) || trapResultObj === UNDEFINED)) {
-                throwTypeError('');
-            }
-
-            const targetDesc = getOwnPropertyDescriptor(ProxyTarget, property);
-            if (trapResultObj === UNDEFINED) {
-                if (targetDesc !== UNDEFINED) {
-                    if (!targetDesc.configurable) {
-                        throwTypeError('')
-                    }
-                    const extensibleTarget = isExtensible(ProxyTarget);
-                    if (!extensibleTarget) {
-                        throwTypeError('')
-                    }
-                }
-                return;
-            }
-
-            const extensibleTarget = isExtensible(ProxyTarget);
-            const resultDesc = ToPropertyDescriptor(trapResultObj);
-            //Call CompletePropertyDescriptor(resultDesc).
-            const valid = IsCompatiblePropertyDescriptor(extensibleTarget, resultDesc, targetDesc);
-            if (!valid) {
-                throwTypeError('');
-            }
-            if (!resultDesc.configurable && (targetDesc === UNDEFINED || targetDesc.configurable)) {
-                throwTypeError('');
-            }
-            return resultDesc;
+        if (typeof ProxyHandler[trap] !== 'function') {
+            throwTrapNotFunction(trap, ProxyHandler[trap]);
         }
-        throwTrapNotFunction(trap, ProxyHandler[trap]);
+
+        const trapResultObj = ProxyHandler[trap](ProxyTarget, property);
+        if (!(isObject(trapResultObj) || trapResultObj === UNDEFINED)) {
+            throwTypeError(`[${trap}] trap returned neither object nor undefined`);
+        }
+
+        const targetDesc = getOwnPropertyDescriptor(ProxyTarget, property);
+        if (trapResultObj === UNDEFINED) {
+            if (targetDesc !== UNDEFINED) {
+                if (!targetDesc.configurable) {
+                    throwTypeError(`[${trap}] trap returned undefined for non-configurable property`)
+                }
+                const extensibleTarget = isExtensible(ProxyTarget);
+                if (!extensibleTarget) {
+                    throwTypeError(`[${trap}] trap returned undefined for non-extensible object`)
+                }
+            }
+            return;
+        }
+
+        const extensibleTarget = isExtensible(ProxyTarget);
+        const resultDesc = toPropertyDescriptor(trapResultObj);
+        const valid = isCompatiblePropertyDescriptor(extensibleTarget, resultDesc, targetDesc);
+        if (!valid) {
+            throwTypeError(`[${trap}] trap returned an incompatible descriptor`);
+        }
+        if (!resultDesc.configurable && (targetDesc === UNDEFINED || targetDesc.configurable)) {
+            throwTypeError(`[${trap}] trap reported non-existent or configurable property as non-configurable`);
+        }
+        return resultDesc;
+    }
+
+
+    /**
+     * [[DefineOwnProperty]]
+     * @param {string} prop 
+     * @param {object} desc
+     * @returns {boolean}
+     */
+    DefineOwnProperty(prop, desc) {
+        const trap = 'defineProperty';
+        const {ProxyTarget, ProxyHandler} = this;
+        validateProxyHanler(ProxyHandler, trap);
+
+        if (ProxyHandler[trap] == UNDEFINED) {
+            defineProperty(ProxyTarget, prop, desc);
+            return true;
+        }
+        if (typeof ProxyHandler[trap] !== 'function') {
+            throwTrapNotFunction(trap, ProxyHandler[trap]);
+        }
+
+        const descObj = fromPropertyDescriptor(desc);
+        const booleanTrapResult = ProxyHandler[trap](ProxyTarget, prop, descObj);
+        if (!booleanTrapResult) return false;
+
+        const targetDesc = getOwnPropertyDescriptor(ProxyTarget, prop);
+        const extensibleTarget = isExtensible(ProxyTarget);
+        const settingConfigFalse = desc.configurable === false ? true : false;
+        if (targetDesc === UNDEFINED) {
+            if (!extensibleTarget) {
+                throwTypeError(`[${trap}] proxy can't define property "${prop}" on a non-extensible object`);
+            }
+            if (settingConfigFalse) {
+                throwTypeError(`[${trap}] proxy can't define non-existent property "${prop}" as non-configurable`);
+            }
+        } else {
+            if (!isCompatiblePropertyDescriptor(extensibleTarget, desc, targetDesc)) {
+                throwTypeError(`[${trap}] proxy can't define an incompatible descriptor for property "${prop}"`);
+            }
+            if (settingConfigFalse && targetDesc.configurable) {
+                throwTypeError(`[${trap}] proxy can't define an existing configurable property as non-configurable`);
+            }
+        }
+        return true;
+    }
+
+
+    /**
+     * [[HasProperty]]
+     * @returns {boolean}
+     */
+    HasProperty(prop) {
+        const trap = 'has';
+        const {ProxyTarget, ProxyHandler} = this;
+        validateProxyHanler(ProxyHandler, trap);
+
+        if (ProxyHandler[trap] == UNDEFINED) {
+            return prop in ProxyTarget;
+        }
+        if (typeof ProxyHandler[trap] !== 'function') {
+            throwTrapNotFunction(trap, ProxyHandler[trap]);
+        }
+
+        const booleanTrapResult = ProxyHandler[trap](ProxyTarget, prop) ? true : false;
+        if (!booleanTrapResult) {
+            const targetDesc = getOwnPropertyDescriptor(ProxyTarget, prop);
+            if (targetDesc) {
+                if (!targetDesc.configurable) {
+                    throwTypeError(`[${trap}] proxy can't report a non-configurable own property "${prop}" as non-existent`);
+                }
+                const extensibleTarget = isExtensible(ProxyTarget);
+                if (!extensibleTarget) {
+                    throwTypeError(`[${trap}] proxy can't report an existing own property "${prop}" as non-existent on a non-extensible object`);
+                }
+            }
+        }
+        return booleanTrapResult;
+    }
+
+
+    /**
+     * [[Delete]]
+     * @returns {boolean}
+     */
+    Delete(prop) {
+        const trap = 'deleteProperty';
+        const {ProxyTarget, ProxyHandler} = this;
+        validateProxyHanler(ProxyHandler, trap);
+
+        if (ProxyHandler[trap] == UNDEFINED) {
+            return delete ProxyTarget[prop];
+        }
+        if (typeof ProxyHandler[trap] !== 'function') {
+            throwTrapNotFunction(trap, ProxyHandler[trap]);
+        }
+
+        const booleanTrapResult = ProxyHandler[trap](ProxyTarget, prop);
+        if (!booleanTrapResult) return false;
+
+        const targetDesc = getOwnPropertyDescriptor(ProxyTarget, prop);
+        if (targetDesc && !targetDesc.configurable) {
+            throwTypeError(`[${trap}] property "${prop}" is non-configurable and can't be deleted`);
+        }
+        return true;
+    }
+
+
+    /**
+     * [[OwnPropertyKeys]]
+     * @returns {string[]}
+     */
+    OwnPropertyKeys() {
+        const trap = 'ownKeys';
+        const {ProxyTarget, ProxyHandler} = this;
+        validateProxyHanler(ProxyHandler, trap);
+
+        if (ProxyHandler[trap] == UNDEFINED) {
+            return getOwnPropertyNames(ProxyTarget);
+        }
+        if (typeof ProxyHandler[trap] !== 'function') {
+            throwTrapNotFunction(trap, ProxyHandler[trap]);
+        }
+
+        const trapResultArray = ProxyHandler[trap](ProxyTarget);
+        const trapResult = createListFromArrayLike(trapResultArray);
+        if (containDuplicateEntry(trapResult)) {
+            throwTypeError(`[${trap}] trap returned duplicate entries`);
+        }
+
+        const extensibleTarget = isExtensible(ProxyTarget);
+        const targetKeys = getOwnPropertyNames(ProxyTarget);
+        const targetConfigurableKeys = [];
+        const targetNonconfigurableKeys = [];
+        const uncheckedResultKeyMap = {};
+        for (let i = targetKeys.length - 1; i >= 0; --i) {
+            const key = targetKeys[i];
+            const desc = getOwnPropertyDescriptor(ProxyTarget, key);
+            if (desc && !desc.configurable) {
+                targetNonconfigurableKeys.push(key);
+            } else {
+                targetConfigurableKeys.push(key);
+            }
+            uncheckedResultKeyMap[key] = 1;
+        }
+        if (extensibleTarget && !targetNonconfigurableKeys.length) {
+            return trapResult;
+        }
+
+        for (const key of targetNonconfigurableKeys) {
+            if (key in uncheckedResultKeyMap) {
+                uncheckedResultKeyMap[key] = 0;
+            } else {
+                throwTypeError(`[${trap}] result did not include the non-configurable property "${key}"`);
+            }
+        }
+        if (extensibleTarget) return trapResult;
+
+        for (const key of targetConfigurableKeys) {
+            if (key in uncheckedResultKeyMap) {
+                uncheckedResultKeyMap[key] = 0;
+            } else {
+                throwTypeError(`[${trap}] result did not include the existing property "${key}" of non-extensible object`);
+            }
+        }
+
+        for (const key in uncheckedResultKeyMap) {
+            if (uncheckedResultKeyMap[key]) {
+                throwTypeError(`[${trap}] proxy can't report a new property "${key}" on a non-extensible object`);
+            }
+        }
+
+        return trapResult;
     }
 
 }
