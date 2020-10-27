@@ -295,6 +295,28 @@ describe('[revocable] throw when calling `Proxy.revocable` as a constructor', fu
 });
 
 
+describe('[revocable] cannot create proxy with a revoked proxy as target', function () {
+    expect(function () {
+        var revocable = Proxy.revocable({}, {});
+        revocable.revoke();
+        new Proxy(revocable.proxy, {});
+    }).to.throwException(function (ex) {
+        expect(ex).to.be.a(TypeError);
+    });
+});
+
+
+describe('[revocable] cannot create proxy with a revoked proxy as handler', function () {
+    expect(function () {
+        var revocable = Proxy.revocable({}, {});
+        revocable.revoke();
+        new Proxy({}, revocable.proxy);
+    }).to.throwException(function (ex) {
+        expect(ex).to.be.a(TypeError);
+    });
+});
+
+
 describe('[revocable] throw when performing `get` on a revoked proxy', function () {
     expect(function () {
         var revocable = Proxy.revocable({a: 1}, {});
