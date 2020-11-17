@@ -18,7 +18,7 @@
 
 #### 安装
 1. 使用NPM：`npm install -S es6-proxy-polyfill`
-2. 直接下载：<a href="src/es6-proxy-polyfill.js" target="_blank">开发版本</a>，<a href="dist/es6-proxy-polyfill.js" target="_blank">生产版本</a>
+2. 直接下载：<a href="src/index.js" target="_blank">开发版本</a>，<a href="dist/es6-proxy-polyfill.js" target="_blank">生产版本</a>
 
 
 #### 用法

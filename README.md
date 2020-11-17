@@ -18,7 +18,7 @@ The `Proxy.revocable` method is also supported, but only for calls to the above 
 
 #### Installation
 1. Use NPM: `npm install -S es6-proxy-polyfill`
-2. Download directly: <a href="src/es6-proxy-polyfill.js" target="_blank">Development Version</a>, <a href="dist/es6-proxy-polyfill.js" target="_blank">Production Version</a>
+2. Download directly: <a href="src/index.js" target="_blank">Development Version</a>, <a href="dist/es6-proxy-polyfill.js" target="_blank">Production Version</a>
 
 
 #### Usage
