@@ -154,8 +154,11 @@ Internal.prototype[SET] = function (property, value, receiver) {
     } else if (typeof handler.set === 'function') {
         var result = handler.set(this[PROXY_TARGET], property, value, receiver);
         if (!result) {
-            throwTypeError("Trap 'set' returned false for property '" + property + "'");
+            // If the set() method returns false in strict-mode code, a TypeError will be thrown.
+            // throwTypeError("Trap 'set' returned false for property '" + property + "'");
+            console.warn("Trap 'set' returned false for property '" + property + "'")
         }
+        return Boolean(result)
     } else {
         throwTypeError("Trap 'set' is not a function: " + handler.set);
     }
