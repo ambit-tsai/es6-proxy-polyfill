@@ -1,4 +1,4 @@
-[简体中文](README.zh-CN.md) | English
+[简体中文](https://gitee.com/ambit/es6-proxy-polyfill#git-readme) | English
 
 
 # ES6 Proxy Polyfill&nbsp;&nbsp;![Version](https://img.shields.io/npm/v/es6-proxy-polyfill.svg)
@@ -17,8 +17,9 @@ The `Proxy.revocable` method is also supported, but only for calls to the above 
 
 
 #### Installation
-1. Use NPM: `npm install -S es6-proxy-polyfill`
-2. Download directly: <a href="src/es6-proxy-polyfill.js" target="_blank">Development Version</a>, <a href="dist/es6-proxy-polyfill.js" target="_blank">Production Version</a>
+```javascript
+npm i -S es6-proxy-polyfill
+```
 
 
 #### Usage

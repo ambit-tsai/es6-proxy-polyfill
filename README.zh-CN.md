@@ -1,4 +1,4 @@
-简体中文 | [English](README.md)
+简体中文 | [English](https://github.com/ambit-tsai/es6-proxy-polyfill#readme)
 
 
 # ES6 Proxy Polyfill&nbsp;&nbsp;![Version](https://img.shields.io/npm/v/es6-proxy-polyfill.svg)
@@ -17,8 +17,10 @@
 
 
 #### 安装
-1. 使用NPM：`npm install -S es6-proxy-polyfill`
-2. 直接下载：<a href="src/es6-proxy-polyfill.js" target="_blank">开发版本</a>，<a href="dist/es6-proxy-polyfill.js" target="_blank">生产版本</a>
+```javascript
+npm i -S es6-proxy-polyfill
+```
+
 
 
 #### 用法
